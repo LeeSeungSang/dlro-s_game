@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 로봇팔 수박 게임 (이미지 최적화 버전)</title>
+    <title>AI 로봇팔 수박 게임 (랭킹 시스템 추가)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #f0f2f5; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; }
@@ -11,11 +11,21 @@
         /* UI 레이어 (공통) */
         .ui-panel { pointer-events: none; z-index: 10; background: rgba(255, 255, 255, 0.9); padding: 15px 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
-        /* 왼쪽 상단 점수판 */
-        #ui-layer { position: absolute; top: 20px; left: 20px; text-align: left; }
-        #score-board { font-size: 1.2rem; font-weight: bold; color: #333; line-height: 1.5; }
+        /* 왼쪽 상단 점수판 및 랭킹 */
+        #ui-layer { position: absolute; top: 20px; left: 20px; text-align: left; pointer-events: auto; } /* 클릭 가능하게 변경 */
+        #score-board { font-size: 1.2rem; font-weight: bold; color: #333; line-height: 1.5; margin-bottom: 15px; }
         .score-highlight { font-size: 1.8rem; color: #ff4757; }
         #control-hint { color: #888; font-size: 0.9rem; margin-top: 10px; }
+
+        /* 랭킹 보드 스타일 */
+        #leaderboard { min-width: 180px; padding: 15px; font-size: 0.95rem; }
+        #leaderboard h3 { margin: 0 0 10px 0; font-size: 1.1rem; color: #2c3e50; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        #ranking-list { list-style: none; padding: 0; margin: 0; }
+        #ranking-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
+        #ranking-list li:last-child { border-bottom: none; }
+        .rank-num { font-weight: bold; color: #f39c12; width: 20px; }
+        .rank-name { flex-grow: 1; text-align: left; padding-left: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
+        .rank-score { font-weight: bold; color: #333; }
 
         /* 오른쪽 여백 진화 및 점수표 */
         #info-layer { position: absolute; top: 20px; right: 20px; text-align: left; }
@@ -23,7 +33,7 @@
         #evolution-chart h3 { margin: 0 0 15px 0; font-size: 1.2rem; color: #333; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
         .evol-item { display: flex; align-items: center; margin-bottom: 12px; font-size: 0.95rem; }
         .evol-icons { display: flex; align-items: center; gap: 5px; min-width: 140px; }
-        .evol-icons img { width: 25px; height: 25px; border-radius: 50%; object-fit: contain; background: #eee; /* 이미지 없을때 대비 */ }
+        .evol-icons img { width: 25px; height: 25px; border-radius: 50%; object-fit: contain; }
         .evol-arrow { color: #888; }
         .evol-delete { color: #ff6b81; font-weight: bold; }
         .evol-score { color: #888; margin-left: auto; text-align: right; }
@@ -33,14 +43,21 @@
         #game-container { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; background: #fffdf9; }
         #claw { position: absolute; top: 0; width: 60px; height: 40px; background: #555; border-radius: 5px; transform: translateX(-50%); z-index: 5; transition: left 0.1s ease-out; display: flex; flex-direction: column; align-items: center; }
         #claw::before { content: "🤖"; font-size: 30px; position: absolute; bottom: -25px; }
-        #next-fruit-preview { position: absolute; bottom: -80px; pointer-events: none; transition: opacity 0.2s; border-radius: 50%; object-fit: contain; /* 미리보기도 비율 유지 */ }
+        #next-fruit-preview { position: absolute; bottom: -80px; pointer-events: none; transition: opacity 0.2s; border-radius: 50%; object-fit: contain; }
         #death-line { position: absolute; top: 120px; width: 100%; height: 2px; border-top: 3px dashed #ff4757; pointer-events: none; opacity: 0.6; }
 
         /* 게임 오버 화면 */
-        #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 20; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: white; text-align: center; }
-        #game-over-screen h2 { font-size: 3rem; margin: 0 0 20px 0; color: #ff6b81; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
-        #game-over-screen p { font-size: 1.5rem; margin: 10px 0; }
-        #restart-btn { margin-top: 30px; padding: 15px 30px; font-size: 1.5rem; font-weight: bold; color: white; background: #2ed573; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s, background 0.2s; }
+        #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 20; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: white; text-align: center; }
+        #game-over-screen h2 { font-size: 3rem; margin: 0 0 10px 0; color: #ff6b81; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        
+        /* 랭킹 등록 UI */
+        #record-input-section { display: none; flex-direction: column; align-items: center; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #f1c40f; }
+        #record-input-section p { color: #f1c40f; font-weight: bold; margin: 0 0 15px 0; }
+        #player-name { padding: 10px; font-size: 1.2rem; border-radius: 5px; border: none; outline: none; text-align: center; width: 150px; margin-bottom: 10px; font-family: 'Pretendard', sans-serif; }
+        #submit-score-btn { padding: 10px 20px; font-size: 1.2rem; font-weight: bold; color: white; background: #3498db; border: none; border-radius: 5px; cursor: pointer; }
+        #submit-score-btn:hover { background: #2980b9; }
+
+        #restart-btn { padding: 15px 30px; font-size: 1.5rem; font-weight: bold; color: white; background: #2ed573; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s, background 0.2s; }
         #restart-btn:hover { background: #27ae60; transform: scale(1.05); }
     </style>
 </head>
@@ -48,16 +65,21 @@
 
     <div id="ui-layer">
         <div id="score-board" class="ui-panel">
-            최고 점수: <span id="high-score">0</span><br>
             현재 점수: <span id="score" class="score-highlight">0</span>
-            <div id="control-hint">마우스를 움직이고 클릭하세요!</div>
+            <div id="control-hint">클릭해서 과일을 떨어트려요!</div>
+        </div>
+        
+        <div id="leaderboard" class="ui-panel">
+            <h3>🏆 명예의 전당 (Top 10)</h3>
+            <ul id="ranking-list">
+                </ul>
         </div>
     </div>
 
     <div id="info-layer">
         <div id="evolution-chart" class="ui-panel">
             <h3>과일 진화 및 점수표</h3>
-            </div>
+        </div>
     </div>
 
     <div id="game-container">
@@ -68,46 +90,74 @@
         
         <div id="game-over-screen">
             <h2>GAME OVER</h2>
-            <p>최고 점수: <span id="final-high-score" style="color: #eccc68;">0</span></p>
-            <p>이번 점수: <span id="final-score" style="font-weight: bold;">0</span></p>
+            <p style="font-size: 1.5rem; margin-bottom: 20px;">이번 점수: <span id="final-score" style="font-weight: bold; color: #fff;">0</span></p>
+            
+            <div id="record-input-section">
+                <p>🎉 TOP 10 랭킹 진입! 이름을 남기세요 🎉</p>
+                <input type="text" id="player-name" placeholder="닉네임 (최대6자)" maxlength="6">
+                <button id="submit-score-btn">랭킹 등록하기</button>
+            </div>
+
             <button id="restart-btn">다시 하기</button>
         </div>
     </div>
 
     <script>
-        // --- 데이터 정의 (이미지 비율 최적화 반영) ---
+        // --- 랭킹 시스템 (Local Storage) 로직 ---
+        let rankings = JSON.parse(localStorage.getItem('suikaRankings')) || [];
+
+        function updateRankingUI() {
+            const listEl = document.getElementById('ranking-list');
+            listEl.innerHTML = '';
+            
+            if (rankings.length === 0) {
+                listEl.innerHTML = '<li style="text-align:center; color:#999; justify-content:center;">아직 기록이 없습니다.</li>';
+                return;
+            }
+
+            rankings.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="rank-num">${index + 1}</span>
+                    <span class="rank-name">${entry.name}</span>
+                    <span class="rank-score">${entry.score}점</span>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+        updateRankingUI(); // 시작할 때 랭킹 그려주기
+
+        // 랭킹 등록 가능한지 확인하는 함수
+        function isTop10(newScore) {
+            if (newScore === 0) return false;
+            if (rankings.length < 10) return true; // 10명이 안 찼으면 무조건 등록
+            return newScore > rankings[rankings.length - 1].score; // 10등 점수보다 높으면 등록
+        }
+
+        // --- 기존 게임 데이터 ---
         const FRUITS = [
-            // radius: 물리적 원형 충돌 지름, score: 합쳤을 때 얻는 점수, imgUrl: 파일 이름
-            // *팁: 상용 수박게임처럼 Level 1(딸기)은 아주 작고, Level 7(수박)은 아주 크게 비율을 맞췄습니다.
-            { name: "딸기", radius: 20, score: 10, imgUrl: "딸기.png",zoom: 1.1 }, // 딸기+딸기 = 10점
-            { name: "키위", radius: 30, score: 30, imgUrl: "키위.png",zoom: 1.1 }, // 키위+키위 = 30점
-            { name: "귤", radius: 45, score: 60, imgUrl: "귤.png",zoom: 1.1 },
-            { name: "복숭아", radius: 60, score: 100, imgUrl: "복숭아.png",zoom: 1.1 },
-            { name: "포도", radius: 80, score: 150, imgUrl: "포도.png" ,zoom: 1.1},
-            { name: "멜론", radius: 105, score: 300, imgUrl: "멜론.png" ,zoom: 1.1},
-            { name: "수박", radius: 140, score: 600, imgUrl: "수박.png" ,zoom: 1.1} // 수박+수박 = 1200점(폭발)
+            { name: "딸기", radius: 12, score: 10, imgUrl: "1.png", zoom: 2.2 },
+            { name: "키위", radius: 18, score: 30, imgUrl: "2.png", zoom: 2.1 },
+            { name: "귤", radius: 25, score: 60, imgUrl: "3.png", zoom: 2.0 },
+            { name: "복숭아", radius: 35, score: 100, imgUrl: "4.png", zoom: 1.9 },
+            { name: "포도", radius: 48, score: 150, imgUrl: "5.png" , zoom: 1.8 },
+            { name: "멜론", radius: 65, score: 300, imgUrl: "6.png" , zoom: 1.7 },
+            { name: "수박", radius: 90, score: 600, imgUrl: "7.png" , zoom: 1.6 }
         ];
 
-        // --- 이미지 미리 로드 및 비율 저장 함수 (찌부 해결 핵심) ---
         const loadedImages = {};
-        const imageRatios = {}; // 이미지의 원본 가로/세로 비율 저장
+        const imageRatios = {}; 
 
         FRUITS.forEach(fruit => {
             const img = new Image();
             img.src = fruit.imgUrl;
             img.onload = () => {
                 loadedImages[fruit.name] = img;
-                imageRatios[fruit.name] = img.width / img.height; // 원본 비율 계산 (예: 1.0 = 정사각형)
-                checkAllImagesLoaded(); // 이미지 다 로드되면 UI 생성
+                imageRatios[fruit.name] = img.width / img.height; 
+                checkAllImagesLoaded(); 
             };
-            // 에러 처리 (이미지 없을 때 대체)
-            img.onerror = () => {
-                console.error(`이미지 로딩 실패: ${fruit.imgUrl}. 텍스트로 대체합니다.`);
-                // 여기에 이미지 로딩 실패 시 임시 이미지나 텍스트로 대체하는 로직을 넣을 수 있습니다.
-            }
         });
 
-        // --- 오른쪽 진화 차트 동적 생성 함수 (새로 추가) ---
         function generateEvolutionChart() {
             const chartEl = document.getElementById('evolution-chart');
             for (let i = 0; i < FRUITS.length; i++) {
@@ -115,7 +165,6 @@
                 const evolItemDiv = document.createElement('div');
                 evolItemDiv.className = 'evol-item';
 
-                // 아이콘 영역 (아이콘A + 아이콘A -> 결과)
                 const iconsDiv = document.createElement('div');
                 iconsDiv.className = 'evol-icons';
                 
@@ -126,18 +175,16 @@
                 
                 iconsDiv.appendChild(imgA); iconsDiv.appendChild(plusSpan); iconsDiv.appendChild(imgB); iconsDiv.appendChild(arrowSpan);
 
-                // 결과 처리
                 let finalScoreVal = item.score;
-                if (i === FRUITS.length - 1) { // 마지막 수박
+                if (i === FRUITS.length - 1) { 
                     const deleteSpan = document.createElement('span'); deleteSpan.className = 'evol-delete'; deleteSpan.innerText = '삭제💥';
                     iconsDiv.appendChild(deleteSpan);
-                    finalScoreVal = item.score * 2; // 수박+수박 폭발 점수
+                    finalScoreVal = item.score * 2; 
                 } else {
                     const nextImg = document.createElement('img'); nextImg.src = FRUITS[i + 1].imgUrl; nextImg.alt = FRUITS[i + 1].name;
                     iconsDiv.appendChild(nextImg);
                 }
 
-                // 점수 영역
                 const scoreDiv = document.createElement('div');
                 scoreDiv.className = 'evol-score';
                 scoreDiv.innerHTML = `점수: <span class="score-val">${finalScoreVal}</span>`;
@@ -148,7 +195,6 @@
             }
         }
 
-        // 이미지 다 로딩되면 차트 생성 (비동기 이미지 로딩 대응)
         let loadedCount = 0;
         function checkAllImagesLoaded() {
             loadedCount++;
@@ -157,9 +203,8 @@
             }
         }
 
-        // --- 물리 엔진 초기화 및 메인 게임 로직 ---
+        // --- 게임 물리 엔진 ---
         let score = 0;
-        let highScore = 0;
         let isClickable = true;
         let isGameOver = false;
         let currentFruitIndex = 0;
@@ -167,9 +212,10 @@
         const claw = document.getElementById('claw');
         const nextFruitPreview = document.getElementById('next-fruit-preview');
         const scoreEl = document.getElementById('score');
-        const highScoreEl = document.getElementById('high-score');
         const gameOverScreen = document.getElementById('game-over-screen');
         const container = document.getElementById('game-container');
+        const recordSection = document.getElementById('record-input-section');
+        const restartBtn = document.getElementById('restart-btn');
 
         const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
         const engine = Engine.create();
@@ -181,12 +227,7 @@
         const render = Render.create({
             element: container,
             engine: engine,
-            options: {
-                width: width,
-                height: height,
-                wireframes: false,
-                background: 'transparent'
-            }
+            options: { width: width, height: height, wireframes: false, background: 'transparent' }
         });
 
         const wallOptions = { isStatic: true, render: { visible: false } };
@@ -205,7 +246,6 @@
             const config = FRUITS[currentFruitIndex];
             
             nextFruitPreview.src = config.imgUrl;
-            // 미리보기도 찌그러지지 않게 object-fit: contain CSS 사용 (radius 크기로 지름 설정)
             nextFruitPreview.style.width = (config.radius * 2) + "px";
             nextFruitPreview.style.height = (config.radius * 2) + "px";
             nextFruitPreview.style.opacity = '1';
@@ -228,9 +268,7 @@
 
         container.addEventListener('click', () => {
             if (!isClickable || isGameOver) return;
-
             dropFruit(mouseX, 100, currentFruitIndex);
-            
             isClickable = false;
             nextFruitPreview.style.opacity = '0';
 
@@ -245,16 +283,11 @@
         function dropFruit(x, y, index) {
             const config = FRUITS[index];
             const fruit = Bodies.circle(x, y, config.radius, {
-                index: index,
-                restitution: 0.2, // 탄성 (튕김 정도)
-                friction: 0.1,
-                render: { visible: false } // 기본 렌더링 끄기 (커스텀 드로잉 사용)
+                index: index, restitution: 0.2, friction: 0.1, render: { visible: false } 
             });
-
             Composite.add(world, fruit);
         }
 
-        // --- 과일 충돌 및 머지(Merge) 로직 ---
         Events.on(engine, 'collisionStart', (event) => {
             event.pairs.forEach((pair) => {
                 const bodyA = pair.bodyA;
@@ -262,10 +295,9 @@
 
                 if (bodyA.index !== undefined && bodyA.index === bodyB.index) {
                     const currentIndex = bodyA.index;
-                    
                     if (!Composite.allBodies(world).includes(bodyA) || !Composite.allBodies(world).includes(bodyB)) return;
 
-                    if (currentIndex === FRUITS.length - 1) { // 수박 두 개 폭발
+                    if (currentIndex === FRUITS.length - 1) { 
                         Composite.remove(world, [bodyA, bodyB]);
                         updateScore(FRUITS[currentIndex].score * 2);
                         return;
@@ -279,9 +311,7 @@
                     const nextIndex = currentIndex + 1;
                     const nextConfig = FRUITS[nextIndex];
                     const newFruit = Bodies.circle(newX, newY, nextConfig.radius, {
-                        index: nextIndex,
-                        restitution: 0.2,
-                        render: { visible: false } // 합쳐진 과일도 커스텀 드로잉 사용
+                        index: nextIndex, restitution: 0.2, render: { visible: false } 
                     });
 
                     Composite.add(world, newFruit);
@@ -293,35 +323,57 @@
         function updateScore(points) {
             score += points;
             scoreEl.innerText = score;
-            if (score > highScore) {
-                highScore = score;
-                highScoreEl.innerText = highScore;
-            }
         }
 
-        // --- 게임 오버 및 다시하기 로직 ---
         Events.on(engine, 'afterUpdate', () => {
             if (isGameOver) return;
-
             world.bodies.forEach(body => {
                 if (body.isStatic) return;
-                
-                // 안정화된 상태에서 데스라인(120px) 넘으면 게임오버
                 if (body.position.y < 120 && body.velocity.y < 0.1 && body.velocity.x < 0.1 && isClickable) {
                     triggerGameOver();
                 }
             });
         });
 
+        // 게임 오버 발생 시
         function triggerGameOver() {
             isGameOver = true;
             isClickable = false;
             document.getElementById('final-score').innerText = score;
-            document.getElementById('final-high-score').innerText = highScore;
+            
+            // 랭킹 10위 안에 들었는지 검사
+            if (isTop10(score)) {
+                recordSection.style.display = 'flex'; // 이름 입력창 표시
+                restartBtn.style.display = 'none'; // 등록하기 전까지 다시하기 숨김
+            } else {
+                recordSection.style.display = 'none';
+                restartBtn.style.display = 'block';
+            }
+
             gameOverScreen.style.display = 'flex';
         }
 
-        document.getElementById('restart-btn').addEventListener('click', () => {
+        // 랭킹 등록 버튼 클릭 시 로직
+        document.getElementById('submit-score-btn').addEventListener('click', () => {
+            const nameInput = document.getElementById('player-name').value.trim() || '익명';
+            
+            // 배열에 추가하고 정렬(내림차순)
+            rankings.push({ name: nameInput, score: score });
+            rankings.sort((a, b) => b.score - a.score);
+            
+            // 딱 10명까지만 유지 (10명 초과분은 잘라냄)
+            rankings = rankings.slice(0, 10);
+            
+            // 로컬 스토리지에 저장 및 UI 갱신
+            localStorage.setItem('suikaRankings', JSON.stringify(rankings));
+            updateRankingUI();
+
+            // 등록 후 다시하기 버튼 띄우기
+            recordSection.style.display = 'none';
+            restartBtn.style.display = 'block';
+        });
+
+        restartBtn.addEventListener('click', () => {
             gameOverScreen.style.display = 'none';
             score = 0; scoreEl.innerText = score;
             
@@ -331,7 +383,6 @@
             isGameOver = false; isClickable = true; setNextFruit();
         });
 
-        // --- ★ 핵심: 찌부 해결 및 충돌체 일치 드로잉 (afterRender) ★ ---
         Events.on(render, 'afterRender', () => {
             const context = render.context;
             
@@ -346,13 +397,11 @@
                         context.translate(body.position.x, body.position.y);
                         context.rotate(body.angle);
                         
-                        // zoom 값을 가져옴 (없으면 기본값 1.0)
                         const scaleZoom = config.zoom || 1.0;
                         const diameter = config.radius * 2;
                         let drawWidth, drawHeight;
                         
                         if (originalRatio > 1) {
-                            // zoom 배율을 곱해서 이미지를 실제 충돌체보다 크게 그림
                             drawWidth = diameter * scaleZoom;
                             drawHeight = (diameter / originalRatio) * scaleZoom; 
                         } else {
