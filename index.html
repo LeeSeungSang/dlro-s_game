@@ -157,17 +157,53 @@
         }
         setNextFruit();
 
-        container.addEventListener('mousemove', (e) => {
+// --- 🎮 마우스 및 모바일 터치 컨트롤 로직 ---
+
+        // 1. 집게(Claw) 위치 이동 공통 함수
+        function updateClawPosition(clientX) {
             if (isGameOver) return;
             const rect = container.getBoundingClientRect();
-            let mouseX = e.clientX - rect.left;
+            let posX = clientX - rect.left;
             
             const currentRadius = FRUITS[currentFruitIndex].radius;
-            if (mouseX < currentRadius) mouseX = currentRadius;
-            if (mouseX > width - currentRadius) mouseX = width - currentRadius;
+            if (posX < currentRadius) posX = currentRadius;
+            if (posX > width - currentRadius) posX = width - currentRadius;
             
-            document.getElementById('claw').style.left = mouseX + 'px';
-        });
+            document.getElementById('claw').style.left = posX + 'px';
+        }
+
+        // 2. 과일 떨어뜨리기 공통 함수
+        function triggerDrop() {
+            if (!isClickable || isGameOver) return;
+            
+            const clawLeftStr = document.getElementById('claw').style.left;
+            let dropX = clawLeftStr ? parseFloat(clawLeftStr) : width / 2;
+
+            dropFruit(dropX, 100, currentFruitIndex);
+            
+            isClickable = false; 
+            document.getElementById('next-fruit-preview').style.opacity = '0';
+            
+            setTimeout(() => { 
+                if (!isGameOver) { setNextFruit(); isClickable = true; } 
+            }, 1000);
+        }
+
+        // [PC 환경] 마우스 이벤트
+        container.addEventListener('mousemove', (e) => updateClawPosition(e.clientX));
+        container.addEventListener('click', triggerDrop);
+
+        // [모바일 환경] 터치 이벤트
+        container.addEventListener('touchstart', (e) => {
+            updateClawPosition(e.touches[0].clientX);
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // 중요: 터치 드래그 시 스마트폰 화면이 스크롤되는 것을 방지!
+            updateClawPosition(e.touches[0].clientX);
+        }, { passive: false });
+
+        container.addEventListener('touchend', triggerDrop);
 
         // 물리 법칙(마찰력, 탄성) 복구 완료
         function dropFruit(x, y, index) {
@@ -181,19 +217,6 @@
             Composite.add(world, fruit);
         }
 
-        container.addEventListener('click', () => {
-            if (!isClickable || isGameOver) return;
-            
-            const rect = container.getBoundingClientRect();
-            // 스타일 좌표(left)를 가져와서 드롭 X 위치로 사용
-            const clawLeftStr = document.getElementById('claw').style.left;
-            let dropX = clawLeftStr ? parseFloat(clawLeftStr) : width / 2;
-
-            dropFruit(dropX, 100, currentFruitIndex);
-            
-            isClickable = false; document.getElementById('next-fruit-preview').style.opacity = '0';
-            setTimeout(() => { if (!isGameOver) { setNextFruit(); isClickable = true; } }, 1000);
-        });
 
         Events.on(engine, 'collisionStart', (event) => {
             event.pairs.forEach((pair) => {
