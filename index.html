@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 로봇팔 수박 게임 (Firebase 글로벌 랭킹)</title>
+    <title>AI 로봇팔 수박 게임 (글로벌 랭킹 + 물리 완벽버전)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        /* (스타일은 이전과 동일하므로 생략하거나 기존 것 유지) */
         body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #f0f2f5; font-family: 'Pretendard', sans-serif; overflow: hidden; }
         .ui-panel { pointer-events: none; z-index: 10; background: rgba(255, 255, 255, 0.9); padding: 15px 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 10px; }
         #ui-layer { position: absolute; top: 20px; left: 20px; text-align: left; pointer-events: auto; }
@@ -21,25 +20,24 @@
         .rank-num { font-weight: bold; color: #f39c12; width: 25px; }
         .rank-name { flex-grow: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
         
-        /* 오른쪽 진화표 */
         #info-layer { position: absolute; top: 20px; right: 20px; }
         #evolution-chart { min-width: 200px; }
         .evol-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 0.9rem; }
         .evol-icons img { width: 25px; height: 25px; border-radius: 50%; }
 
-        /* 게임 메인 */
         #game-container { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); background: #fffdf9; }
-        #claw { position: absolute; top: 0; width: 60px; height: 40px; background: #555; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+        #claw { position: absolute; top: 0; width: 60px; height: 40px; background: #555; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; z-index: 5; transition: left 0.1s ease-out;}
         #claw::before { content: "🤖"; font-size: 30px; position: absolute; bottom: -25px; }
-        #next-fruit-preview { position: absolute; bottom: -80px; }
+        #next-fruit-preview { position: absolute; bottom: -80px; transition: opacity 0.2s;}
+        #death-line { position: absolute; top: 120px; width: 100%; height: 2px; border-top: 3px dashed #ff4757; pointer-events: none; opacity: 0.6; }
         
-        /* 게임 오버 */
         #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 20; flex-direction: column; align-items: center; justify-content: center; color: white; }
         #record-input-section { display: none; flex-direction: column; align-items: center; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; border: 2px solid #f1c40f; margin-bottom: 15px; }
         #player-name { padding: 10px; font-size: 1.1rem; border-radius: 5px; margin-bottom: 10px; text-align: center; }
         button { cursor: pointer; border: none; font-weight: bold; border-radius: 10px; }
         #submit-score-btn { padding: 10px 20px; background: #3498db; color: white; }
-        #restart-btn { padding: 15px 30px; font-size: 1.5rem; background: #2ed573; color: white; }
+        #restart-btn { padding: 15px 30px; font-size: 1.5rem; background: #2ed573; color: white; transition: transform 0.1s; }
+        #restart-btn:hover { transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -54,15 +52,16 @@
         </div>
     </div>
 
-    <div id="info-layer"><div id="evolution-chart" class="ui-panel"><h3>진화표</h3></div></div>
+    <div id="info-layer"><div id="evolution-chart" class="ui-panel"></div></div>
 
     <div id="game-container">
         <div id="claw"><img id="next-fruit-preview" src=""></div>
+        <div id="death-line"></div>
         <div id="game-over-screen">
-            <h2>GAME OVER</h2>
-            <p>점수: <span id="final-score">0</span></p>
+            <h2 style="font-size: 3rem; margin:0 0 10px 0; color:#ff6b81;">GAME OVER</h2>
+            <p style="font-size: 1.5rem;">점수: <span id="final-score" style="font-weight:bold;">0</span></p>
             <div id="record-input-section">
-                <p>세계 랭킹 진입!</p>
+                <p style="color:#f1c40f; font-weight:bold; margin:0 0 10px 0;">세계 랭킹 진입!</p>
                 <input type="text" id="player-name" placeholder="닉네임(6자)" maxlength="6">
                 <button id="submit-score-btn">랭킹 등록</button>
             </div>
@@ -71,7 +70,7 @@
     </div>
 
     <script>
-        // --- 1. Firebase 설정 및 초기화 ---
+        // --- 1. Firebase 설정 ---
         const firebaseConfig = {
             apiKey: "AIzaSyBWo6A1fNgaj7FOWYviDcUaS7gLDttFTMw",
             authDomain: "dlro-s-game.firebaseapp.com",
@@ -83,71 +82,70 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- 2. 랭킹 시스템 (서버 통신) ---
+        // --- 2. 랭킹 시스템 ---
         async function fetchRankings() {
             try {
-                // 점수 내림차순으로 상위 10개만 가져오기
-                const snapshot = await db.collection("rankings")
-                                         .orderBy("score", "desc")
-                                         .limit(10)
-                                         .get();
-                
+                const snapshot = await db.collection("rankings").orderBy("score", "desc").limit(10).get();
                 const listEl = document.getElementById('ranking-list');
                 listEl.innerHTML = '';
-                
                 snapshot.forEach((doc, index) => {
                     const data = doc.data();
                     const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span class="rank-num">${index + 1}</span>
-                        <span class="rank-name">${data.name}</span>
-                        <span class="rank-score">${data.score}</span>
-                    `;
+                    li.innerHTML = `<span class="rank-num">${index + 1}</span><span class="rank-name">${data.name}</span><span class="rank-score">${data.score}</span>`;
                     listEl.appendChild(li);
                 });
             } catch (e) {
                 console.error("랭킹 로드 실패:", e);
             }
         }
-        fetchRankings(); // 시작 시 실행
+        fetchRankings();
 
-        // --- 3. 기존 게임 데이터 & 물리 엔진 (동일) ---
+        // --- 3. 게임 데이터 및 물리 엔진 (2번 코드 복구) ---
         const FRUITS = [
-            { name: "딸기", radius: 12, score: 10, imgUrl: "1.png", zoom: 2.2 },
-            { name: "키위", radius: 18, score: 30, imgUrl: "2.png", zoom: 2.1 },
-            { name: "귤", radius: 25, score: 60, imgUrl: "3.png", zoom: 2.0 },
-            { name: "복숭아", radius: 35, score: 100, imgUrl: "4.png", zoom: 1.9 },
-            { name: "포도", radius: 48, score: 150, imgUrl: "5.png" , zoom: 1.8 },
-            { name: "멜론", radius: 65, score: 300, imgUrl: "6.png" , zoom: 1.7 },
-            { name: "수박", radius: 90, score: 600, imgUrl: "7.png" , zoom: 1.6 }
+            { name: "딸기", radius: 12, score: 10, imgUrl: "딸기.png", zoom: 2.2 },
+            { name: "키위", radius: 18, score: 30, imgUrl: "키위.png", zoom: 2.1 },
+            { name: "귤", radius: 25, score: 60, imgUrl: "귤.png", zoom: 2.0 },
+            { name: "복숭아", radius: 35, score: 100, imgUrl: "복숭아.png", zoom: 1.9 },
+            { name: "포도", radius: 48, score: 150, imgUrl: "포도.png", zoom: 1.8 },
+            { name: "멜론", radius: 65, score: 300, imgUrl: "멜론.png", zoom: 1.7 },
+            { name: "수박", radius: 90, score: 600, imgUrl: "수박.png", zoom: 1.6 }
         ];
 
-        // (기타 이미지 로드, 진화표 생성, Matter.js 설정 코드는 이전과 동일하므로 논리적 흐름에 맞춰 유지)
-        // ... [이전과 동일한 물리 엔진 코드들] ...
         const loadedImages = {};
         const imageRatios = {}; 
+        
         FRUITS.forEach(fruit => {
             const img = new Image(); img.src = fruit.imgUrl;
             img.onload = () => { loadedImages[fruit.name] = img; imageRatios[fruit.name] = img.width / img.height; checkAllImagesLoaded(); };
         });
+
         function generateEvolutionChart() {
             const chartEl = document.getElementById('evolution-chart');
+            chartEl.innerHTML = '<h3>진화표</h3>';
             FRUITS.forEach((item, i) => {
                 const div = document.createElement('div'); div.className = 'evol-item';
                 div.innerHTML = `<div class="evol-icons"><img src="${item.imgUrl}"> + <img src="${item.imgUrl}"> → ${i === 6 ? '💥' : `<img src="${FRUITS[i+1].imgUrl}">`}</div> <div style="margin-left:auto; color:#ff4757; font-weight:bold;">${i===6?1200:FRUITS[i+1].score}</div>`;
                 chartEl.appendChild(div);
             });
         }
-        let loadedCount = 0; function checkAllImagesLoaded() { loadedCount++; if (loadedCount === FRUITS.length) generateEvolutionChart(); }
+        
+        let loadedCount = 0; 
+        function checkAllImagesLoaded() { loadedCount++; if (loadedCount === FRUITS.length) generateEvolutionChart(); }
 
         let score = 0; let isClickable = true; let isGameOver = false; let currentFruitIndex = 0;
         const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
         const engine = Engine.create(); const world = engine.world;
         const width = 450; const height = 700;
         const container = document.getElementById('game-container');
+        
         const render = Render.create({ element: container, engine: engine, options: { width: width, height: height, wireframes: false, background: 'transparent' } });
-        const ground = Bodies.rectangle(width / 2, height + 10, width, 40, { isStatic: true, render: { visible: false } });
-        Composite.add(world, [ground, Bodies.rectangle(-10, 350, 40, 700, { isStatic: true }), Bodies.rectangle(460, 350, 40, 700, { isStatic: true })]);
+        
+        const wallOptions = { isStatic: true, render: { visible: false } };
+        const ground = Bodies.rectangle(width / 2, height + 10, width, 40, wallOptions);
+        const leftWall = Bodies.rectangle(-10, height / 2, 40, height, wallOptions);
+        const rightWall = Bodies.rectangle(width + 10, height / 2, 40, height, wallOptions);
+        Composite.add(world, [ground, leftWall, rightWall]);
+        
         Render.run(render); Runner.run(Runner.create(), engine);
 
         function setNextFruit() {
@@ -161,15 +159,38 @@
 
         container.addEventListener('mousemove', (e) => {
             if (isGameOver) return;
-            let mouseX = e.clientX - container.getBoundingClientRect().left;
-            document.getElementById('claw').style.left = Math.max(30, Math.min(420, mouseX)) + 'px';
+            const rect = container.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            
+            const currentRadius = FRUITS[currentFruitIndex].radius;
+            if (mouseX < currentRadius) mouseX = currentRadius;
+            if (mouseX > width - currentRadius) mouseX = width - currentRadius;
+            
+            document.getElementById('claw').style.left = mouseX + 'px';
         });
 
-        container.addEventListener('click', (e) => {
-            if (!isClickable || isGameOver) return;
-            let mouseX = e.clientX - container.getBoundingClientRect().left;
-            const fruit = Bodies.circle(Math.max(30, Math.min(420, mouseX)), 100, FRUITS[currentFruitIndex].radius, { index: currentFruitIndex, restitution: 0.2, render: { visible: false } });
+        // 물리 법칙(마찰력, 탄성) 복구 완료
+        function dropFruit(x, y, index) {
+            const config = FRUITS[index];
+            const fruit = Bodies.circle(x, y, config.radius, {
+                index: index,
+                restitution: 0.2, 
+                friction: 0.1,    
+                render: { visible: false } 
+            });
             Composite.add(world, fruit);
+        }
+
+        container.addEventListener('click', () => {
+            if (!isClickable || isGameOver) return;
+            
+            const rect = container.getBoundingClientRect();
+            // 스타일 좌표(left)를 가져와서 드롭 X 위치로 사용
+            const clawLeftStr = document.getElementById('claw').style.left;
+            let dropX = clawLeftStr ? parseFloat(clawLeftStr) : width / 2;
+
+            dropFruit(dropX, 100, currentFruitIndex);
+            
             isClickable = false; document.getElementById('next-fruit-preview').style.opacity = '0';
             setTimeout(() => { if (!isGameOver) { setNextFruit(); isClickable = true; } }, 1000);
         });
@@ -180,13 +201,27 @@
                 if (a.index !== undefined && a.index === b.index) {
                     const idx = a.index;
                     if (!Composite.allBodies(world).includes(a) || !Composite.allBodies(world).includes(b)) return;
-                    Composite.remove(world, [a, b]);
-                    score += (idx === 6 ? 1200 : FRUITS[idx+1].score);
-                    document.getElementById('score').innerText = score;
-                    if (idx < 6) {
-                        const next = Bodies.circle((a.position.x+b.position.x)/2, (a.position.y+b.position.y)/2, FRUITS[idx+1].radius, { index: idx+1, render: { visible: false } });
-                        Composite.add(world, next);
+                    
+                    if (idx === FRUITS.length - 1) { 
+                        Composite.remove(world, [a, b]);
+                        score += FRUITS[idx].score * 2;
+                        document.getElementById('score').innerText = score;
+                        return;
                     }
+
+                    const newX = (a.position.x + b.position.x) / 2;
+                    const newY = (a.position.y + b.position.y) / 2;
+                    Composite.remove(world, [a, b]);
+                    
+                    // 합쳐진 과일 탄성 복구
+                    const next = Bodies.circle(newX, newY, FRUITS[idx+1].radius, { 
+                        index: idx+1, 
+                        restitution: 0.2, 
+                        render: { visible: false } 
+                    });
+                    Composite.add(world, next);
+                    score += FRUITS[idx+1].score;
+                    document.getElementById('score').innerText = score;
                 }
             });
         });
@@ -194,19 +229,19 @@
         Events.on(engine, 'afterUpdate', () => {
             if (isGameOver) return;
             world.bodies.forEach(body => {
-                if (!body.isStatic && body.position.y < 120 && body.velocity.y < 0.1 && isClickable) triggerGameOver();
+                if (!body.isStatic && body.position.y < 120 && body.velocity.y < 0.1 && body.velocity.x < 0.1 && isClickable) triggerGameOver();
             });
         });
 
         function triggerGameOver() {
             isGameOver = true;
+            isClickable = false;
             document.getElementById('final-score').innerText = score;
             document.getElementById('game-over-screen').style.display = 'flex';
-            // 랭킹 등록 섹션 표시
             document.getElementById('record-input-section').style.display = 'flex';
         }
 
-        // --- 4. 랭킹 등록 버튼 이벤트 ---
+        // Firebase 랭킹 등록
         document.getElementById('submit-score-btn').addEventListener('click', async () => {
             const name = document.getElementById('player-name').value.trim() || "익명";
             try {
@@ -217,7 +252,7 @@
                 });
                 alert("랭킹 등록 완료!");
                 document.getElementById('record-input-section').style.display = 'none';
-                fetchRankings(); // 리스트 새로고침
+                fetchRankings(); 
             } catch (e) {
                 alert("등록 실패: " + e.message);
             }
@@ -225,15 +260,34 @@
 
         document.getElementById('restart-btn').addEventListener('click', () => location.reload());
 
+        // --- ★ 핵심 찌부 해결 렌더링 복구 ★ ---
         Events.on(render, 'afterRender', () => {
             const ctx = render.context;
             Composite.allBodies(world).forEach(body => {
                 if (body.index !== undefined) {
-                    const config = FRUITS[body.index]; const img = loadedImages[config.name];
-                    if (img) {
-                        ctx.save(); ctx.translate(body.position.x, body.position.y); ctx.rotate(body.angle);
-                        const s = config.radius * 2 * config.zoom;
-                        ctx.drawImage(img, -s/2, -s/2, s, s); ctx.restore();
+                    const config = FRUITS[body.index];
+                    const img = loadedImages[config.name];
+                    const originalRatio = imageRatios[config.name]; 
+                    
+                    if (img && originalRatio) {
+                        ctx.save();
+                        ctx.translate(body.position.x, body.position.y);
+                        ctx.rotate(body.angle);
+                        
+                        const scaleZoom = config.zoom || 1.0;
+                        const diameter = config.radius * 2;
+                        let drawWidth, drawHeight;
+                        
+                        if (originalRatio > 1) {
+                            drawWidth = diameter * scaleZoom;
+                            drawHeight = (diameter / originalRatio) * scaleZoom; 
+                        } else {
+                            drawHeight = diameter * scaleZoom;
+                            drawWidth = (diameter * originalRatio) * scaleZoom; 
+                        }
+                        
+                        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+                        ctx.restore();
                     }
                 }
             });
