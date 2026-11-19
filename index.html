@@ -150,7 +150,7 @@
 
         @media (max-width: 1039px) {
             body { align-items: flex-start; padding: 10px; }
-            #app-layout { flex-direction: column; align-items: center; gap: 12px; width: 100%; margin: 0 auto; }
+            #app-layout { flex-direction: column; align-items: center; gap: 10px; width: 100%; margin: 0 auto; }
             #ui-layer { display: contents; }
             #score-board {
                 order: 1;
@@ -164,6 +164,21 @@
             #game-stage { order: 2; }
             #leaderboard { order: 3; width: 100%; max-width: var(--stage-w, 450px); }
             #info-layer { order: 4; width: 100%; max-width: var(--stage-w, 450px); }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 4px 6px 16px; }
+            #app-layout { gap: 6px; }
+            #score-board {
+                padding: 6px 14px;
+                border-radius: 10px;
+                font-size: 0.95rem;
+                max-width: 100%;
+            }
+            .score-highlight { font-size: 1.3rem; }
+            #game-container { border-radius: 6px; }
+            #leaderboard, #info-layer { max-width: 100%; }
+            #leaderboard, #evolution-chart { padding: 12px 14px; }
         }
     </style>
 </head>
@@ -354,16 +369,20 @@
         Render.run(render); Runner.run(Runner.create(), engine);
 
         function updateGameScale() {
-            const isCompact = window.innerWidth < 1040;
-            const horizPadding = isCompact ? 24 : 552;
-            const availW = Math.max(260, window.innerWidth - horizPadding);
+            const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+            const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            const isCompact = vw < 1040;
+            const isMobile = vw <= 600;
+            const horizPadding = isMobile ? 12 : (isCompact ? 20 : 552);
+            const availW = Math.max(260, vw - horizPadding);
             let availH;
             if (isCompact) {
                 const scoreEl = document.getElementById('score-board');
-                const scoreH = scoreEl ? scoreEl.offsetHeight : 56;
-                availH = Math.max(360, window.innerHeight - scoreH - 36);
+                const scoreH = scoreEl ? scoreEl.offsetHeight : (isMobile ? 38 : 52);
+                const vertMargin = isMobile ? 16 : 30;
+                availH = Math.max(360, vh - scoreH - vertMargin);
             } else {
-                availH = Math.max(420, window.innerHeight - 32);
+                availH = Math.max(420, vh - 32);
             }
             const scale = Math.min(1, availW / width, availH / height);
             const stage = document.getElementById('game-stage');
@@ -376,6 +395,9 @@
         }
         updateGameScale();
         window.addEventListener('resize', updateGameScale);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateGameScale);
+        }
 
         function setNextFruit() {
             currentFruitIndex = Math.floor(Math.random() * 3);
