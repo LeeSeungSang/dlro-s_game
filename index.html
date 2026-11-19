@@ -233,8 +233,36 @@
         #restart-btn { padding: 15px 30px; font-size: 1.5rem; background: #2ed573; color: white; transition: transform 0.1s; }
         #restart-btn:hover { transform: scale(1.05); }
 
+        #portal-ssudam-btn {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 30;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 13px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #0b2a5b, #1e88e5);
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 4px 12px rgba(11, 42, 91, 0.25);
+            transition: transform 0.14s ease, filter 0.14s ease;
+            white-space: nowrap;
+        }
+        #portal-ssudam-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+        }
+        #portal-ssudam-btn:active {
+            transform: scale(0.96);
+        }
+
         @media (max-width: 1039px) {
-            body { align-items: flex-start; padding: 10px; }
+            body { align-items: flex-start; padding: 48px 10px 10px; }
             #app-layout { flex-direction: column; align-items: center; gap: 10px; width: 100%; margin: 0 auto; }
             #ui-layer { display: contents; }
             #score-board {
@@ -259,7 +287,8 @@
         }
 
         @media (max-width: 600px) {
-            body { padding: 4px 6px 16px; }
+            body { padding: 44px 6px 16px; }
+            #portal-ssudam-btn { top: 6px; left: 6px; padding: 5px 10px; font-size: 0.76rem; }
             #app-layout { gap: 6px; }
             #score-board {
                 padding: 5px 10px;
@@ -286,6 +315,7 @@
     </style>
 </head>
 <body>
+    <a id="portal-ssudam-btn" href="https://leeseungsang.github.io/ssudam-game/" title="쓰담쓰담: 수원역 대청소로 이동">🎮 게임전환 · 🤖 쓰담쓰담</a>
 
     <div id="app-layout">
         <div id="ui-layer">
@@ -614,7 +644,7 @@
             if (isCompact) {
                 const scoreEl = document.getElementById('score-board');
                 const scoreH = scoreEl ? scoreEl.offsetHeight : (isMobile ? 38 : 52);
-                const vertMargin = isMobile ? 16 : 30;
+                const vertMargin = isMobile ? 56 : 70;
                 availH = Math.max(360, vh - scoreH - vertMargin);
             } else {
                 availH = Math.max(420, vh - 32);
