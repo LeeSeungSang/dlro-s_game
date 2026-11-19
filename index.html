@@ -87,11 +87,24 @@
             try {
                 const snapshot = await db.collection("rankings").orderBy("score", "desc").limit(10).get();
                 const listEl = document.getElementById('ranking-list');
-                listEl.innerHTML = '';
+                listEl.textContent = '';
                 snapshot.forEach((doc, index) => {
                     const data = doc.data();
                     const li = document.createElement('li');
-                    li.innerHTML = `<span class="rank-num">${index + 1}</span><span class="rank-name">${data.name}</span><span class="rank-score">${data.score}</span>`;
+
+                    const numSpan = document.createElement('span');
+                    numSpan.className = 'rank-num';
+                    numSpan.textContent = String(index + 1);
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'rank-name';
+                    nameSpan.textContent = typeof data.name === 'string' ? data.name : '익명';
+
+                    const scoreSpan = document.createElement('span');
+                    scoreSpan.className = 'rank-score';
+                    scoreSpan.textContent = String(typeof data.score === 'number' ? data.score : 0);
+
+                    li.append(numSpan, nameSpan, scoreSpan);
                     listEl.appendChild(li);
                 });
             } catch (e) {
@@ -265,18 +278,24 @@
         }
 
         // Firebase 랭킹 등록
-        document.getElementById('submit-score-btn').addEventListener('click', async () => {
-            const name = document.getElementById('player-name').value.trim() || "익명";
+        const submitScoreBtn = document.getElementById('submit-score-btn');
+        submitScoreBtn.addEventListener('click', async () => {
+            if (submitScoreBtn.disabled) return;
+            const rawName = document.getElementById('player-name').value.trim();
+            const name = Array.from(rawName || "익명").slice(0, 6).join('');
+            const safeScore = Number.isFinite(score) && score >= 0 ? Math.floor(score) : 0;
+            submitScoreBtn.disabled = true;
             try {
                 await db.collection("rankings").add({
                     name: name,
-                    score: score,
+                    score: safeScore,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 alert("랭킹 등록 완료!");
                 document.getElementById('record-input-section').style.display = 'none';
-                fetchRankings(); 
+                fetchRankings();
             } catch (e) {
+                submitScoreBtn.disabled = false;
                 alert("등록 실패: " + e.message);
             }
         });
