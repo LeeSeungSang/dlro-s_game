@@ -301,7 +301,7 @@
                     </div>
                 </div>
                 <div class="hud-skill-row">
-                    <button id="shake-btn" class="skill-btn" type="button" title="통 흔들기">🫨 <span class="skill-text">흔들기</span> <span id="shake-count">(2)</span></button>
+                    <button id="shake-btn" class="skill-btn" type="button" title="통 흔들기 (합체 시 1% 확률 획득)">🫨 <span class="skill-text">흔들기</span> <span id="shake-count">0/2</span></button>
                     <button id="swap-btn" class="skill-btn" type="button" title="현재 과일 바꾸기">🔄 <span class="skill-text">바꾸기</span> <span id="swap-count">(3)</span></button>
                     <button id="sound-toggle-btn" type="button" title="효과음 켜기/끄기">🔊</button>
                 </div>
@@ -550,12 +550,30 @@
         });
 
         // --- 게임 상태 및 물리 엔진 ---
+        const MAX_SHAKE_COUNT = 2;
+        const SHAKE_DROP_CHANCE = 0.01;
+        const DROP_FRUIT_WEIGHTS = [0.55, 0.30, 0.15]; // 딸기 55%, 키위 30%, 귤 15%
+
+        function pickRandomDropFruit(excludeIndex = -1) {
+            let total = 0;
+            for (let i = 0; i < DROP_FRUIT_WEIGHTS.length; i++) {
+                if (i !== excludeIndex) total += DROP_FRUIT_WEIGHTS[i];
+            }
+            let r = Math.random() * total;
+            for (let i = 0; i < DROP_FRUIT_WEIGHTS.length; i++) {
+                if (i === excludeIndex) continue;
+                r -= DROP_FRUIT_WEIGHTS[i];
+                if (r < 0) return i;
+            }
+            return excludeIndex === 0 ? 1 : 0;
+        }
+
         let score = 0;
         let isClickable = true;
         let isGameOver = false;
-        let currentFruitIndex = Math.floor(Math.random() * 3);
-        let nextFruitIndex = Math.floor(Math.random() * 3);
-        let shakeCount = 2;
+        let currentFruitIndex = pickRandomDropFruit();
+        let nextFruitIndex = pickRandomDropFruit();
+        let shakeCount = 0;
         let swapCount = 3;
         let shakeGraceUntil = 0;
 
@@ -619,7 +637,7 @@
         function updateSkillButtons() {
             const shakeBtn = document.getElementById('shake-btn');
             const swapBtn = document.getElementById('swap-btn');
-            document.getElementById('shake-count').textContent = `(${shakeCount})`;
+            document.getElementById('shake-count').textContent = `${shakeCount}/${MAX_SHAKE_COUNT}`;
             document.getElementById('swap-count').textContent = `(${swapCount})`;
             shakeBtn.disabled = shakeCount <= 0 || isGameOver;
             swapBtn.disabled = swapCount <= 0 || !isClickable || isGameOver;
@@ -628,7 +646,7 @@
         function setNextFruit(advance = true) {
             if (advance) {
                 currentFruitIndex = nextFruitIndex;
-                nextFruitIndex = Math.floor(Math.random() * 3);
+                nextFruitIndex = pickRandomDropFruit();
             }
             const config = FRUITS[currentFruitIndex];
             const preview = document.getElementById('next-fruit-preview');
@@ -696,6 +714,16 @@
             }
         }
 
+        function tryGrantShakeCharge(x, y) {
+            if (shakeCount < MAX_SHAKE_COUNT && Math.random() < SHAKE_DROP_CHANCE) {
+                shakeCount += 1;
+                updateSkillButtons();
+                spawnFloatingText(x, y - 48, `🫨 흔들기 획득! (${shakeCount}/${MAX_SHAKE_COUNT})`, '#3498db', 1.15);
+                playTone(523.25, 783.99, 0.14, 'sine', 0.14, 0.06);
+                playTone(783.99, 1046.5, 0.18, 'triangle', 0.14, 0.14);
+            }
+        }
+
         document.getElementById('shake-btn').addEventListener('click', () => {
             if (shakeCount <= 0 || isGameOver) return;
             ensureAudio();
@@ -722,7 +750,7 @@
             swapCount -= 1;
             playSkillSound('swap');
             if (nextFruitIndex === currentFruitIndex) {
-                nextFruitIndex = (currentFruitIndex + 1 + Math.floor(Math.random() * 2)) % 3;
+                nextFruitIndex = pickRandomDropFruit(currentFruitIndex);
             }
             const prev = currentFruitIndex;
             currentFruitIndex = nextFruitIndex;
@@ -852,6 +880,7 @@
                         document.getElementById('score').innerText = score;
                         spawnMergeEffects(burstX, burstY, idx, earned, comboCount);
                         playWatermelonSound();
+                        tryGrantShakeCharge(burstX, burstY);
                         return;
                     }
 
@@ -868,6 +897,7 @@
                     document.getElementById('score').innerText = score;
                     spawnMergeEffects(newX, newY, idx + 1, earned, comboCount);
                     playMergeSound(idx + 1, comboCount);
+                    tryGrantShakeCharge(newX, newY);
                 }
             });
         });
