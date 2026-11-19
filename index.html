@@ -45,8 +45,56 @@
             flex-direction: column;
             gap: 10px;
         }
-        #score-board { font-size: 1.15rem; font-weight: bold; }
-        .score-highlight { font-size: 1.7rem; color: #ff4757; }
+        #score-board {
+            font-size: 1.15rem;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .hud-main-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .score-box { display: flex; flex-direction: column; gap: 2px; }
+        .score-label { font-size: 0.9rem; color: #57606f; }
+        .score-highlight { font-size: 1.7rem; color: #ff4757; line-height: 1.1; }
+        .next-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: #fffdf9;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 4px 10px;
+            flex-shrink: 0;
+        }
+        .next-label { font-size: 0.7rem; color: #747d8c; font-weight: bold; letter-spacing: 0.04em; }
+        #next-queue-img { width: 28px; height: 28px; object-fit: contain; display: block; }
+        .hud-skill-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .skill-btn, #sound-toggle-btn {
+            background: #f1f2f6;
+            color: #2f3542;
+            border: 1px solid #dfe4ea;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.82rem;
+            font-weight: bold;
+            transition: background 0.15s, transform 0.1s, opacity 0.15s;
+            white-space: nowrap;
+        }
+        .skill-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+        #sound-toggle-btn { flex-shrink: 0; min-width: 34px; }
+        .skill-btn:hover:not(:disabled), #sound-toggle-btn:hover { background: #e6e8ef; transform: translateY(-1px); }
+        .skill-btn:active:not(:disabled), #sound-toggle-btn:active { transform: translateY(0); }
+        .skill-btn:disabled { opacity: 0.45; cursor: not-allowed; }
         #leaderboard h3, #evolution-chart h3 {
             margin: 0 0 10px 0;
             text-align: center;
@@ -102,7 +150,44 @@
         }
         #claw::before { content: "🤖"; font-size: 30px; position: absolute; bottom: -25px; }
         #next-fruit-preview { position: absolute; pointer-events: none; transition: opacity 0.2s; }
-        #death-line { position: absolute; top: 120px; left: 0; width: 100%; height: 2px; border-top: 3px dashed #ff4757; pointer-events: none; opacity: 0.6; }
+        #death-line {
+            position: absolute;
+            top: 120px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            border-top: 3px dashed #ff4757;
+            pointer-events: none;
+            opacity: 0.6;
+            transition: opacity 0.15s;
+        }
+        #death-line.danger-active {
+            border-top-color: #ff1e38;
+            opacity: 1;
+            filter: drop-shadow(0 0 6px #ff4757);
+            animation: dangerPulse 0.45s ease-in-out infinite alternate;
+        }
+        #danger-banner {
+            display: none;
+            position: absolute;
+            top: 82px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 71, 87, 0.92);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 0.92rem;
+            font-weight: bold;
+            z-index: 12;
+            pointer-events: none;
+            box-shadow: 0 2px 10px rgba(255,71,87,0.4);
+            white-space: nowrap;
+        }
+        @keyframes dangerPulse {
+            from { opacity: 0.55; }
+            to { opacity: 1; }
+        }
 
         #game-over-screen {
             display: none;
@@ -156,11 +241,18 @@
                 order: 1;
                 width: 100%;
                 max-width: var(--stage-w, 450px);
-                display: flex;
+                flex-direction: row;
                 align-items: center;
                 justify-content: space-between;
-                padding: 10px 18px;
+                gap: 8px;
+                padding: 8px 14px;
             }
+            .hud-main-row { gap: 10px; }
+            .score-box { flex-direction: row; align-items: baseline; gap: 6px; }
+            .next-box { flex-direction: row; gap: 6px; padding: 3px 8px; }
+            #next-queue-img { width: 24px; height: 24px; }
+            .hud-skill-row { gap: 5px; }
+            .skill-btn { flex: initial; }
             #game-stage { order: 2; }
             #leaderboard { order: 3; width: 100%; max-width: var(--stage-w, 450px); }
             #info-layer { order: 4; width: 100%; max-width: var(--stage-w, 450px); }
@@ -170,15 +262,26 @@
             body { padding: 4px 6px 16px; }
             #app-layout { gap: 6px; }
             #score-board {
-                padding: 6px 14px;
+                padding: 5px 10px;
                 border-radius: 10px;
-                font-size: 0.95rem;
+                font-size: 0.9rem;
                 max-width: 100%;
+                gap: 6px;
             }
+            .score-label { font-size: 0.78rem; }
             .score-highlight { font-size: 1.3rem; }
+            .next-box { padding: 2px 6px; gap: 4px; }
+            .next-label { font-size: 0.65rem; }
+            #next-queue-img { width: 22px; height: 22px; }
+            .skill-text { display: none; }
+            .skill-btn, #sound-toggle-btn { padding: 5px 8px; font-size: 0.82rem; }
+            #sound-toggle-btn { min-width: 30px; }
             #game-container { border-radius: 6px; }
             #leaderboard, #info-layer { max-width: 100%; }
             #leaderboard, #evolution-chart { padding: 12px 14px; }
+        }
+        @media (max-width: 420px) {
+            .score-label { display: none; }
         }
     </style>
 </head>
@@ -187,8 +290,21 @@
     <div id="app-layout">
         <div id="ui-layer">
             <div id="score-board" class="ui-panel">
-                <span>현재 점수</span>
-                <span id="score" class="score-highlight">0</span>
+                <div class="hud-main-row">
+                    <div class="score-box">
+                        <span class="score-label">현재 점수</span>
+                        <span id="score" class="score-highlight">0</span>
+                    </div>
+                    <div class="next-box" title="다음 과일">
+                        <span class="next-label">NEXT</span>
+                        <img id="next-queue-img" src="" alt="다음 과일">
+                    </div>
+                </div>
+                <div class="hud-skill-row">
+                    <button id="shake-btn" class="skill-btn" type="button" title="통 흔들기">🫨 <span class="skill-text">흔들기</span> <span id="shake-count">(2)</span></button>
+                    <button id="swap-btn" class="skill-btn" type="button" title="현재 과일 바꾸기">🔄 <span class="skill-text">바꾸기</span> <span id="swap-count">(3)</span></button>
+                    <button id="sound-toggle-btn" type="button" title="효과음 켜기/끄기">🔊</button>
+                </div>
             </div>
             <div id="leaderboard" class="ui-panel">
                 <h3>🏆 세계 랭킹 (TOP 10)</h3>
@@ -200,6 +316,7 @@
             <div id="game-container">
                 <div id="claw"><img id="next-fruit-preview" src="" alt="다음 과일"></div>
                 <div id="death-line"></div>
+                <div id="danger-banner">⚠️ 위험! <span id="danger-timer">3.0</span>초</div>
                 <div id="game-over-screen">
                     <h2 style="font-size: 3rem; margin:0 0 10px 0; color:#ff6b81;">GAME OVER</h2>
                     <p style="font-size: 1.5rem;">점수: <span id="final-score" style="font-weight:bold;">0</span></p>
@@ -266,10 +383,10 @@
         }
         fetchRankings();
 
-        // --- 3. 게임 데이터 및 물리 엔진 (과일 실루엣 맞춤 콜라이더) ---
+        // --- 3. 게임 데이터 및 물리 엔진 (과일 실루엣 맞춤 콜라이더 + 콤보/사운드/스킬) ---
         const FRUITS = [
             {
-                name: "딸기", radius: 20, score: 10, imgUrl: "1.png",
+                name: "딸기", radius: 20, score: 10, imgUrl: "1.png", color: "#ff4757",
                 imgWScale: 2.1075, imgHScale: 2.5358, offsetX: -0.0006, offsetY: -0.1226,
                 vertices: [
                     {x:-0.929,y:-0.484},{x:-0.718,y:-0.728},{x:-0.347,y:-0.923},{x:-0.001,y:-0.999},
@@ -279,7 +396,7 @@
                 ]
             },
             {
-                name: "키위", radius: 30, score: 30, imgUrl: "2.png",
+                name: "키위", radius: 30, score: 30, imgUrl: "2.png", color: "#78e08f",
                 imgWScale: 2.0360, imgHScale: 2.4830, offsetX: -0.0005, offsetY: -0.1698,
                 vertices: [
                     {x:-0.881,y:-0.461},{x:-0.775,y:-0.681},{x:-0.433,y:-0.909},{x:-0.001,y:-1.031},
@@ -289,7 +406,7 @@
                 ]
             },
             {
-                name: "귤", radius: 45, score: 60, imgUrl: "3.png",
+                name: "귤", radius: 45, score: 60, imgUrl: "3.png", color: "#ffa502",
                 imgWScale: 2.1575, imgHScale: 2.2967, offsetX: -0.0118, offsetY: -0.1848,
                 vertices: [
                     {x:-1.036,y:-0.049},{x:-0.968,y:-0.346},{x:-0.678,y:-0.742},{x:-0.358,y:-0.909},
@@ -299,7 +416,7 @@
                 ]
             },
             {
-                name: "복숭아", radius: 60, score: 100, imgUrl: "4.png",
+                name: "복숭아", radius: 60, score: 100, imgUrl: "4.png", color: "#ff6b81",
                 imgWScale: 2.2278, imgHScale: 2.4003, offsetX: 0.0214, offsetY: -0.1843,
                 vertices: [
                     {x:-1.03,y:-0.213},{x:-0.86,y:-0.607},{x:-0.427,y:-0.885},{x:0.338,y:-0.892},
@@ -309,7 +426,7 @@
                 ]
             },
             {
-                name: "포도", radius: 80, score: 150, imgUrl: "5.png",
+                name: "포도", radius: 80, score: 150, imgUrl: "5.png", color: "#a55eea",
                 imgWScale: 2.2244, imgHScale: 2.5790, offsetX: -0.0182, offsetY: -0.1944,
                 vertices: [
                     {x:-0.947,y:-0.628},{x:-0.653,y:-0.803},{x:0.101,y:-0.85},{x:0.712,y:-0.755},
@@ -319,11 +436,11 @@
                 ]
             },
             {
-                name: "멜론", radius: 105, score: 300, imgUrl: "6.png",
+                name: "멜론", radius: 105, score: 300, imgUrl: "6.png", color: "#2ed573",
                 imgWScale: 2.0997, imgHScale: 2.5227, offsetX: -0.0038, offsetY: -0.2077
             },
             {
-                name: "수박", radius: 140, score: 600, imgUrl: "7.png",
+                name: "수박", radius: 140, score: 600, imgUrl: "7.png", color: "#10ac84",
                 imgWScale: 2.1458, imgHScale: 2.4227, offsetX: 0.0269, offsetY: -0.1961
             }
         ];
@@ -350,8 +467,108 @@
         }
         generateEvolutionChart();
 
-        let score = 0; let isClickable = true; let isGameOver = false; let currentFruitIndex = 0;
-        const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
+        // --- 🔊 Web Audio API 내장 효과음 엔진 ---
+        let audioCtx = null;
+        let isMuted = false;
+
+        function ensureAudio() {
+            if (isMuted) return null;
+            try {
+                if (!audioCtx) {
+                    const Ctx = window.AudioContext || window.webkitAudioContext;
+                    if (!Ctx) return null;
+                    audioCtx = new Ctx();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                return audioCtx;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function playTone(freqStart, freqEnd, duration, type = 'sine', gainVal = 0.12, delay = 0) {
+            if (isMuted) return;
+            const ctx = ensureAudio();
+            if (!ctx) return;
+            try {
+                const startTime = ctx.currentTime + delay;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freqStart, startTime);
+                if (freqEnd !== freqStart) {
+                    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), startTime + duration);
+                }
+                gain.gain.setValueAtTime(0.0001, startTime);
+                gain.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration + 0.02);
+            } catch (e) {}
+        }
+
+        function playDropSound() {
+            playTone(260, 140, 0.065, 'sine', 0.12);
+        }
+
+        function playMergeSound(idx, combo) {
+            const scale = [330, 392, 440, 523.25, 587.33, 659.25, 783.99];
+            const mult = Math.min(1.5, 1 + Math.max(0, combo - 1) * 0.08);
+            const base = scale[Math.min(idx, scale.length - 1)] * mult;
+            playTone(base, base * 1.12, 0.13, 'triangle', 0.14, 0);
+            playTone(base * 1.25, base * 1.35, 0.15, 'sine', 0.11, 0.045);
+        }
+
+        function playWatermelonSound() {
+            const fanfare = [523.25, 659.25, 783.99, 1046.5];
+            fanfare.forEach((freq, i) => {
+                playTone(freq, freq, 0.18, 'triangle', 0.14, i * 0.065);
+            });
+        }
+
+        function playSkillSound(type) {
+            if (type === 'shake') {
+                playTone(140, 220, 0.11, 'sawtooth', 0.08, 0);
+                playTone(220, 110, 0.16, 'triangle', 0.1, 0.08);
+            } else {
+                playTone(440, 660, 0.1, 'sine', 0.11, 0);
+            }
+        }
+
+        function playDangerBeep() {
+            playTone(880, 880, 0.07, 'sine', 0.08);
+        }
+
+        document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.getElementById('sound-toggle-btn').textContent = isMuted ? '🔇' : '🔊';
+            if (!isMuted) ensureAudio();
+        });
+
+        // --- 게임 상태 및 물리 엔진 ---
+        let score = 0;
+        let isClickable = true;
+        let isGameOver = false;
+        let currentFruitIndex = Math.floor(Math.random() * 3);
+        let nextFruitIndex = Math.floor(Math.random() * 3);
+        let shakeCount = 2;
+        let swapCount = 3;
+        let shakeGraceUntil = 0;
+
+        const particles = [];
+        const floatingTexts = [];
+        let comboCount = 0;
+        let lastMergeTime = 0;
+        let shakeIntensity = 0;
+        let dangerElapsed = 0;
+        let lastUpdateTick = Date.now();
+        let lastBeepTime = 0;
+
+        const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
         const engine = Engine.create(); const world = engine.world;
         const width = 450; const height = 700;
         const DROP_Y = 100;
@@ -399,8 +616,20 @@
             window.visualViewport.addEventListener('resize', updateGameScale);
         }
 
-        function setNextFruit() {
-            currentFruitIndex = Math.floor(Math.random() * 3);
+        function updateSkillButtons() {
+            const shakeBtn = document.getElementById('shake-btn');
+            const swapBtn = document.getElementById('swap-btn');
+            document.getElementById('shake-count').textContent = `(${shakeCount})`;
+            document.getElementById('swap-count').textContent = `(${swapCount})`;
+            shakeBtn.disabled = shakeCount <= 0 || isGameOver;
+            swapBtn.disabled = swapCount <= 0 || !isClickable || isGameOver;
+        }
+
+        function setNextFruit(advance = true) {
+            if (advance) {
+                currentFruitIndex = nextFruitIndex;
+                nextFruitIndex = Math.floor(Math.random() * 3);
+            }
             const config = FRUITS[currentFruitIndex];
             const preview = document.getElementById('next-fruit-preview');
             const drawW = config.imgWScale * config.radius;
@@ -413,8 +642,96 @@
             preview.style.left = (30 - drawW / 2 + drawOffX) + 'px';
             preview.style.top = (DROP_Y - drawH / 2 + drawOffY) + 'px';
             preview.style.opacity = '1';
+
+            const queueImg = document.getElementById('next-queue-img');
+            if (queueImg) {
+                queueImg.src = FRUITS[nextFruitIndex].imgUrl;
+            }
+
+            const clawEl = document.getElementById('claw');
+            const margin = config.radius * 1.08;
+            const curX = parseFloat(clawEl.style.left);
+            if (!Number.isNaN(curX)) {
+                clawEl.style.left = Math.min(width - margin, Math.max(margin, curX)) + 'px';
+            }
         }
-        setNextFruit();
+        setNextFruit(false);
+        updateSkillButtons();
+
+        function spawnFloatingText(x, y, text, color = '#2f3542', scale = 1) {
+            floatingTexts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color,
+                scale: scale,
+                alpha: 1,
+                vy: -1.4
+            });
+        }
+
+        function spawnMergeEffects(x, y, idx, earnedScore, combo) {
+            const baseColor = FRUITS[idx].color || '#ff4757';
+            for (let i = 0; i < 16; i++) {
+                const angle = (Math.PI * 2 * i) / 16 + (Math.random() - 0.5) * 0.35;
+                const speed = 2 + Math.random() * 4.5;
+                const isSparkle = combo >= 2 && i % 3 === 0;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 0.8,
+                    r: 3 + Math.random() * 4.5,
+                    alpha: 1,
+                    color: isSparkle ? '#f1c40f' : baseColor
+                });
+            }
+            spawnFloatingText(x, y, `+${earnedScore}`, baseColor, 1);
+            if (combo >= 2) {
+                const comboScale = Math.min(1.5, 1 + (combo - 2) * 0.12);
+                spawnFloatingText(x, y - 24, `🔥 ${combo} COMBO!`, combo >= 3 ? '#ff4757' : '#f1c40f', comboScale);
+            }
+            if (idx >= 3 || combo >= 2) {
+                shakeIntensity = Math.min(12, 3 + idx * 1.3 + combo);
+            }
+        }
+
+        document.getElementById('shake-btn').addEventListener('click', () => {
+            if (shakeCount <= 0 || isGameOver) return;
+            ensureAudio();
+            shakeCount -= 1;
+            shakeGraceUntil = Date.now() + 1200;
+            shakeIntensity = 11;
+            playSkillSound('shake');
+            Composite.allBodies(world).forEach(body => {
+                if (!body.isStatic) {
+                    Body.setVelocity(body, {
+                        x: (Math.random() - 0.5) * 8.5,
+                        y: -3.2 - Math.random() * 2.2
+                    });
+                    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.25);
+                }
+            });
+            spawnFloatingText(width / 2, 180, '🫨 흔들기!', '#3498db', 1.15);
+            updateSkillButtons();
+        });
+
+        document.getElementById('swap-btn').addEventListener('click', () => {
+            if (swapCount <= 0 || !isClickable || isGameOver) return;
+            ensureAudio();
+            swapCount -= 1;
+            playSkillSound('swap');
+            if (nextFruitIndex === currentFruitIndex) {
+                nextFruitIndex = (currentFruitIndex + 1 + Math.floor(Math.random() * 2)) % 3;
+            }
+            const prev = currentFruitIndex;
+            currentFruitIndex = nextFruitIndex;
+            nextFruitIndex = prev;
+            setNextFruit(false);
+            const clawX = parseFloat(document.getElementById('claw').style.left) || (width / 2);
+            spawnFloatingText(clawX, DROP_Y, '🔄 과일 교체!', '#a55eea', 1.05);
+            updateSkillButtons();
+        });
 
         // --- 🎮 마우스 및 모바일 터치 컨트롤 로직 ---
 
@@ -431,6 +748,8 @@
 
         function triggerDrop() {
             if (!isClickable || isGameOver) return;
+            ensureAudio();
+            playDropSound();
 
             const clawLeftStr = document.getElementById('claw').style.left;
             const margin = FRUITS[currentFruitIndex].radius * 1.08;
@@ -440,12 +759,14 @@
             dropFruit(dropX, DROP_Y, currentFruitIndex);
 
             isClickable = false;
+            updateSkillButtons();
             document.getElementById('next-fruit-preview').style.opacity = '0';
 
             setTimeout(() => {
                 if (!isGameOver) {
-                    setNextFruit();
+                    setNextFruit(true);
                     isClickable = true;
+                    updateSkillButtons();
                 }
             }, 1000);
         }
@@ -482,7 +803,7 @@
             triggerDrop();
         });
 
-        function createFruitBody(x, y, index) {
+        function createFruitBody(x, y, index, isMerged = false) {
             const config = FRUITS[index];
             const options = {
                 index: index,
@@ -490,18 +811,23 @@
                 friction: 0.1,
                 render: { visible: false }
             };
+            let body;
             if (config.vertices) {
                 const scaledVerts = config.vertices.map(v => ({
                     x: v.x * config.radius,
                     y: v.y * config.radius
                 }));
-                return Bodies.fromVertices(x, y, [scaledVerts], options, false, 0, 10, 0);
+                body = Bodies.fromVertices(x, y, [scaledVerts], options, false, 0, 10, 0);
+            } else {
+                body = Bodies.circle(x, y, config.radius, options);
             }
-            return Bodies.circle(x, y, config.radius, options);
+            body.droppedAt = isMerged ? 0 : Date.now();
+            body.spawnScale = isMerged ? 0.35 : 1.0;
+            return body;
         }
 
         function dropFruit(x, y, index) {
-            Composite.add(world, createFruitBody(x, y, index));
+            Composite.add(world, createFruitBody(x, y, index, false));
         }
 
         Events.on(engine, 'collisionStart', (event) => {
@@ -512,39 +838,97 @@
                     const idx = a.index;
                     if (!Composite.allBodies(world).includes(a) || !Composite.allBodies(world).includes(b)) return;
 
+                    const now = Date.now();
+                    comboCount = (now - lastMergeTime <= 2200) ? comboCount + 1 : 1;
+                    lastMergeTime = now;
+                    const mult = comboCount >= 2 ? Math.min(2.5, 1 + (comboCount - 1) * 0.25) : 1;
+
                     if (idx === FRUITS.length - 1) {
+                        const burstX = (a.position.x + b.position.x) / 2;
+                        const burstY = (a.position.y + b.position.y) / 2;
                         Composite.remove(world, [a, b]);
-                        score += FRUITS[idx].score * 2;
+                        const earned = Math.round(FRUITS[idx].score * 2 * mult);
+                        score += earned;
                         document.getElementById('score').innerText = score;
+                        spawnMergeEffects(burstX, burstY, idx, earned, comboCount);
+                        playWatermelonSound();
                         return;
                     }
 
                     const nextConfig = FRUITS[idx + 1];
                     const nextMargin = nextConfig.radius * 1.08;
                     const newX = Math.min(width - nextMargin, Math.max(nextMargin, (a.position.x + b.position.x) / 2));
-                    const newY = Math.min(height - nextConfig.radius - 2, (a.position.y + b.position.y) / 2);
+                    const newY = Math.min(height - nextConfig.radius - 2, Math.max(nextConfig.radius, (a.position.y + b.position.y) / 2));
                     Composite.remove(world, [a, b]);
 
-                    const next = createFruitBody(newX, newY, idx + 1);
+                    const next = createFruitBody(newX, newY, idx + 1, true);
                     Composite.add(world, next);
-                    score += nextConfig.score;
+                    const earned = Math.round(nextConfig.score * mult);
+                    score += earned;
                     document.getElementById('score').innerText = score;
+                    spawnMergeEffects(newX, newY, idx + 1, earned, comboCount);
+                    playMergeSound(idx + 1, comboCount);
                 }
             });
         });
 
         Events.on(engine, 'afterUpdate', () => {
             if (isGameOver) return;
-            world.bodies.forEach(body => {
-                if (!body.isStatic && body.position.y < 120 && Math.abs(body.velocity.y) < 0.1 && Math.abs(body.velocity.x) < 0.1 && isClickable) {
+            const now = Date.now();
+            const dt = Math.min(100, Math.max(0, now - lastUpdateTick));
+            lastUpdateTick = now;
+
+            let isViolating = false;
+            if (now > shakeGraceUntil) {
+                for (const body of world.bodies) {
+                    if (
+                        !body.isStatic &&
+                        body.index !== undefined &&
+                        now - (body.droppedAt || 0) > 1200 &&
+                        body.position.y - FRUITS[body.index].radius * 0.65 < 120 &&
+                        Math.hypot(body.velocity.x, body.velocity.y) < 2.2
+                    ) {
+                        isViolating = true;
+                        break;
+                    }
+                }
+            }
+
+            const bannerEl = document.getElementById('danger-banner');
+            const timerEl = document.getElementById('danger-timer');
+            const lineEl = document.getElementById('death-line');
+
+            if (isViolating) {
+                dangerElapsed += dt;
+                bannerEl.style.display = 'block';
+                timerEl.textContent = Math.max(0, (3000 - dangerElapsed) / 1000).toFixed(1);
+                lineEl.classList.add('danger-active');
+                if (now - lastBeepTime > 500) {
+                    playDangerBeep();
+                    lastBeepTime = now;
+                }
+                if (dangerElapsed >= 3000) {
+                    bannerEl.style.display = 'none';
+                    lineEl.classList.remove('danger-active');
                     triggerGameOver();
                 }
-            });
+            } else {
+                dangerElapsed = Math.max(0, dangerElapsed - dt * 2.5);
+                if (dangerElapsed === 0) {
+                    bannerEl.style.display = 'none';
+                    lineEl.classList.remove('danger-active');
+                } else {
+                    timerEl.textContent = Math.max(0, (3000 - dangerElapsed) / 1000).toFixed(1);
+                }
+            }
         });
 
         function triggerGameOver() {
             isGameOver = true;
             isClickable = false;
+            document.getElementById('danger-banner').style.display = 'none';
+            document.getElementById('death-line').classList.remove('danger-active');
+            updateSkillButtons();
             document.getElementById('final-score').innerText = score;
             document.getElementById('game-over-screen').style.display = 'flex';
             document.getElementById('record-input-section').style.display = 'flex';
@@ -556,7 +940,7 @@
             if (submitScoreBtn.disabled) return;
             const rawName = document.getElementById('player-name').value.trim();
             const name = Array.from(rawName || "익명").slice(0, 6).join('');
-            const safeScore = Number.isFinite(score) && score >= 0 ? Math.floor(score) : 0;
+            const safeScore = Number.isFinite(score) ? Math.min(1000000, Math.max(0, Math.floor(score))) : 0;
             submitScoreBtn.disabled = true;
             try {
                 await db.collection("rankings").add({
@@ -575,18 +959,60 @@
 
         document.getElementById('restart-btn').addEventListener('click', () => location.reload());
 
-        // --- ★ 과일 실루엣 기준 정렬 렌더링 ★ ---
+        // --- ★ 과일 실루엣 정렬 + 조준선 + 파티클 + 콤보 렌더링 ★ ---
         Events.on(render, 'afterRender', () => {
             const ctx = render.context;
+            const shaking = shakeIntensity > 0.3;
+            ctx.save();
+            if (shaking) {
+                ctx.translate((Math.random() - 0.5) * shakeIntensity, (Math.random() - 0.5) * shakeIntensity);
+                shakeIntensity *= 0.82;
+            } else {
+                shakeIntensity = 0;
+            }
+
+            if (isClickable && !isGameOver) {
+                const clawX = parseFloat(document.getElementById('claw').style.left) || (width / 2);
+                let landingY = height;
+                Composite.allBodies(world).forEach(body => {
+                    if (!body.isStatic && body.index !== undefined) {
+                        if (Math.abs(body.position.x - clawX) < FRUITS[body.index].radius * 0.95) {
+                            landingY = Math.min(landingY, body.bounds.min.y);
+                        }
+                    }
+                });
+                const guideEndY = Math.max(DROP_Y + 20, landingY);
+                ctx.save();
+                ctx.beginPath();
+                ctx.setLineDash([6, 6]);
+                ctx.moveTo(clawX, DROP_Y + 10);
+                ctx.lineTo(clawX, guideEndY);
+                ctx.strokeStyle = FRUITS[currentFruitIndex].color || '#ff4757';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.45;
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(clawX, guideEndY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = FRUITS[currentFruitIndex].color || '#ff4757';
+                ctx.fill();
+                ctx.restore();
+            }
+
             Composite.allBodies(world).forEach(body => {
                 if (body.index !== undefined) {
                     const config = FRUITS[body.index];
                     const img = loadedImages[config.name];
                     if (img) {
-                        const drawWidth = config.imgWScale * config.radius;
-                        const drawHeight = config.imgHScale * config.radius;
-                        const drawOffsetX = config.offsetX * config.radius;
-                        const drawOffsetY = config.offsetY * config.radius;
+                        if (body.spawnScale === undefined) body.spawnScale = 1;
+                        if (body.spawnScale < 1) {
+                            body.spawnScale = Math.min(1, body.spawnScale + (1 - body.spawnScale) * 0.24);
+                        }
+                        const s = body.spawnScale;
+                        const drawWidth = config.imgWScale * config.radius * s;
+                        const drawHeight = config.imgHScale * config.radius * s;
+                        const drawOffsetX = config.offsetX * config.radius * s;
+                        const drawOffsetY = config.offsetY * config.radius * s;
 
                         ctx.save();
                         ctx.translate(body.position.x, body.position.y);
@@ -602,6 +1028,47 @@
                     }
                 }
             });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.16;
+                p.alpha -= 0.032;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r * p.alpha, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.022;
+                if (ft.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.font = `bold ${Math.round(20 * ft.scale)}px Pretendard, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+                ctx.strokeText(ft.text, ft.x, ft.y);
+                ctx.fillStyle = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            ctx.restore();
         });
     </script>
 </body>
