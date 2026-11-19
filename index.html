@@ -8,65 +8,197 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #f0f2f5; font-family: 'Pretendard', sans-serif; overflow: hidden; }
-        .ui-panel { pointer-events: none; z-index: 10; background: rgba(255, 255, 255, 0.9); padding: 15px 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 10px; }
-        #ui-layer { position: absolute; top: 20px; left: 20px; text-align: left; pointer-events: auto; }
-        #score-board { font-size: 1.2rem; font-weight: bold; }
-        .score-highlight { font-size: 1.8rem; color: #ff4757; }
-        #leaderboard { min-width: 200px; }
-        #leaderboard h3 { margin: 0 0 10px 0; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        body {
+            margin: 0;
+            padding: 12px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100dvh;
+            background-color: #f0f2f5;
+            font-family: 'Pretendard', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        #app-layout {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            width: 100%;
+            max-width: 1020px;
+            margin: auto;
+        }
+        .ui-panel {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        #ui-layer {
+            width: 240px;
+            flex-shrink: 0;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #score-board { font-size: 1.15rem; font-weight: bold; }
+        .score-highlight { font-size: 1.7rem; color: #ff4757; }
+        #leaderboard h3, #evolution-chart h3 {
+            margin: 0 0 10px 0;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
         #ranking-list { list-style: none; padding: 0; margin: 0; }
-        #ranking-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
-        .rank-num { font-weight: bold; color: #f39c12; width: 25px; }
-        .rank-name { flex-grow: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
-        
-        #info-layer { position: absolute; top: 20px; right: 20px; }
-        #evolution-chart { min-width: 200px; }
-        .evol-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 0.9rem; }
-        .evol-icons img { width: 25px; height: 25px; border-radius: 50%; }
+        #ranking-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .rank-num { font-weight: bold; color: #f39c12; width: 25px; flex-shrink: 0; }
+        .rank-name { flex-grow: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rank-score { font-weight: bold; flex-shrink: 0; }
 
-        #game-container { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); background: #fffdf9; }
-        #claw { position: absolute; top: 0; width: 60px; height: 40px; background: #555; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; z-index: 5; transition: left 0.1s ease-out;}
+        #info-layer { width: 240px; flex-shrink: 0; }
+        .evol-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
+        .evol-icons { display: flex; align-items: center; gap: 4px; }
+        .evol-icons img { width: 26px; height: 26px; object-fit: contain; vertical-align: middle; }
+
+        #game-stage { position: relative; flex-shrink: 0; }
+        #game-container {
+            position: relative;
+            width: 450px;
+            height: 700px;
+            transform-origin: top left;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: #fffdf9;
+            border-radius: 10px;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #claw {
+            position: absolute;
+            top: 0;
+            left: 225px;
+            width: 60px;
+            height: 40px;
+            background: #555;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+            transition: left 0.08s ease-out;
+            pointer-events: none;
+        }
         #claw::before { content: "🤖"; font-size: 30px; position: absolute; bottom: -25px; }
-        #next-fruit-preview { position: absolute; bottom: -80px; transition: opacity 0.2s;}
-        #death-line { position: absolute; top: 120px; width: 100%; height: 2px; border-top: 3px dashed #ff4757; pointer-events: none; opacity: 0.6; }
-        
-        #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 20; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        #record-input-section { display: none; flex-direction: column; align-items: center; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; border: 2px solid #f1c40f; margin-bottom: 15px; }
-        #player-name { padding: 10px; font-size: 1.1rem; border-radius: 5px; margin-bottom: 10px; text-align: center; }
+        #next-fruit-preview { position: absolute; pointer-events: none; transition: opacity 0.2s; }
+        #death-line { position: absolute; top: 120px; left: 0; width: 100%; height: 2px; border-top: 3px dashed #ff4757; pointer-events: none; opacity: 0.6; }
+
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 20;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: auto;
+        }
+        #record-input-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #f1c40f;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            max-width: 90%;
+            pointer-events: auto;
+        }
+        #player-name {
+            padding: 10px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
         button { cursor: pointer; border: none; font-weight: bold; border-radius: 10px; }
         #submit-score-btn { padding: 10px 20px; background: #3498db; color: white; }
         #restart-btn { padding: 15px 30px; font-size: 1.5rem; background: #2ed573; color: white; transition: transform 0.1s; }
         #restart-btn:hover { transform: scale(1.05); }
+
+        @media (max-width: 1039px) {
+            body { align-items: flex-start; padding: 10px; }
+            #app-layout { flex-direction: column; align-items: center; gap: 12px; width: 100%; margin: 0 auto; }
+            #ui-layer { display: contents; }
+            #score-board {
+                order: 1;
+                width: 100%;
+                max-width: var(--stage-w, 450px);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 18px;
+            }
+            #game-stage { order: 2; }
+            #leaderboard { order: 3; width: 100%; max-width: var(--stage-w, 450px); }
+            #info-layer { order: 4; width: 100%; max-width: var(--stage-w, 450px); }
+        }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div id="score-board" class="ui-panel">
-            현재 점수: <span id="score" class="score-highlight">0</span>
-        </div>
-        <div id="leaderboard" class="ui-panel">
-            <h3>🏆 세계 랭킹 (TOP 10)</h3>
-            <ul id="ranking-list"><li>로딩 중...</li></ul>
-        </div>
-    </div>
-
-    <div id="info-layer"><div id="evolution-chart" class="ui-panel"></div></div>
-
-    <div id="game-container">
-        <div id="claw"><img id="next-fruit-preview" src=""></div>
-        <div id="death-line"></div>
-        <div id="game-over-screen">
-            <h2 style="font-size: 3rem; margin:0 0 10px 0; color:#ff6b81;">GAME OVER</h2>
-            <p style="font-size: 1.5rem;">점수: <span id="final-score" style="font-weight:bold;">0</span></p>
-            <div id="record-input-section">
-                <p style="color:#f1c40f; font-weight:bold; margin:0 0 10px 0;">세계 랭킹 진입!</p>
-                <input type="text" id="player-name" placeholder="닉네임(6자)" maxlength="6">
-                <button id="submit-score-btn">랭킹 등록</button>
+    <div id="app-layout">
+        <div id="ui-layer">
+            <div id="score-board" class="ui-panel">
+                <span>현재 점수</span>
+                <span id="score" class="score-highlight">0</span>
             </div>
-            <button id="restart-btn">다시 하기</button>
+            <div id="leaderboard" class="ui-panel">
+                <h3>🏆 세계 랭킹 (TOP 10)</h3>
+                <ul id="ranking-list"><li>로딩 중...</li></ul>
+            </div>
         </div>
+
+        <div id="game-stage">
+            <div id="game-container">
+                <div id="claw"><img id="next-fruit-preview" src="" alt="다음 과일"></div>
+                <div id="death-line"></div>
+                <div id="game-over-screen">
+                    <h2 style="font-size: 3rem; margin:0 0 10px 0; color:#ff6b81;">GAME OVER</h2>
+                    <p style="font-size: 1.5rem;">점수: <span id="final-score" style="font-weight:bold;">0</span></p>
+                    <div id="record-input-section">
+                        <p style="color:#f1c40f; font-weight:bold; margin:0 0 10px 0;">세계 랭킹 진입!</p>
+                        <input type="text" id="player-name" placeholder="닉네임(6자)" maxlength="6">
+                        <button id="submit-score-btn">랭킹 등록</button>
+                    </div>
+                    <button id="restart-btn">다시 하기</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="info-layer"><div id="evolution-chart" class="ui-panel"></div></div>
     </div>
 
     <script>
@@ -88,7 +220,13 @@
                 const snapshot = await db.collection("rankings").orderBy("score", "desc").limit(10).get();
                 const listEl = document.getElementById('ranking-list');
                 listEl.textContent = '';
-                snapshot.forEach((doc, index) => {
+                if (snapshot.empty) {
+                    const emptyLi = document.createElement('li');
+                    emptyLi.textContent = '아직 등록된 기록이 없습니다.';
+                    listEl.appendChild(emptyLi);
+                    return;
+                }
+                snapshot.docs.forEach((doc, index) => {
                     const data = doc.data();
                     const li = document.createElement('li');
 
@@ -113,150 +251,261 @@
         }
         fetchRankings();
 
-        // --- 3. 게임 데이터 및 물리 엔진 (여백 자른 이미지용 완벽 핏) ---
+        // --- 3. 게임 데이터 및 물리 엔진 (과일 실루엣 맞춤 콜라이더) ---
         const FRUITS = [
-            { name: "딸기", radius: 20, score: 10, imgUrl: "1.png", zoom: 1.1 }, 
-            { name: "키위", radius: 30, score: 30, imgUrl: "2.png", zoom: 1.1 }, 
-            { name: "귤", radius: 45, score: 60, imgUrl: "3.png", zoom: 1.1 },
-            { name: "복숭아", radius: 60, score: 100, imgUrl: "4.png", zoom: 1.1 },
-            { name: "포도", radius: 80, score: 150, imgUrl: "5.png", zoom: 1.1 },
-            { name: "멜론", radius: 105, score: 300, imgUrl: "6.png", zoom: 1.1 },
-            { name: "수박", radius: 140, score: 600, imgUrl: "7.png", zoom: 1.1 } 
+            {
+                name: "딸기", radius: 20, score: 10, imgUrl: "1.png",
+                imgWScale: 2.1075, imgHScale: 2.5358, offsetX: -0.0006, offsetY: -0.1226,
+                vertices: [
+                    {x:-0.929,y:-0.484},{x:-0.718,y:-0.728},{x:-0.347,y:-0.923},{x:-0.001,y:-0.999},
+                    {x:0.717,y:-0.737},{x:0.928,y:-0.492},{x:1.012,y:-0.062},{x:0.852,y:0.394},
+                    {x:0.615,y:0.723},{x:0.286,y:1.027},{x:-0.228,y:1.06},{x:-0.566,y:0.774},
+                    {x:-0.853,y:0.385},{x:-1.005,y:-0.028}
+                ]
+            },
+            {
+                name: "키위", radius: 30, score: 30, imgUrl: "2.png",
+                imgWScale: 2.0360, imgHScale: 2.4830, offsetX: -0.0005, offsetY: -0.1698,
+                vertices: [
+                    {x:-0.881,y:-0.461},{x:-0.775,y:-0.681},{x:-0.433,y:-0.909},{x:-0.001,y:-1.031},
+                    {x:0.22,y:-0.999},{x:0.709,y:-0.754},{x:0.904,y:-0.371},{x:0.937,y:0.118},
+                    {x:0.725,y:0.721},{x:0.464,y:0.933},{x:0.13,y:1.023},{x:-0.408,y:0.958},
+                    {x:-0.799,y:0.599},{x:-0.938,y:0.143}
+                ]
+            },
+            {
+                name: "귤", radius: 45, score: 60, imgUrl: "3.png",
+                imgWScale: 2.1575, imgHScale: 2.2967, offsetX: -0.0118, offsetY: -0.1848,
+                vertices: [
+                    {x:-1.036,y:-0.049},{x:-0.968,y:-0.346},{x:-0.678,y:-0.742},{x:-0.358,y:-0.909},
+                    {x:0.335,y:-0.917},{x:0.624,y:-0.78},{x:0.929,y:-0.43},{x:1.036,y:-0.034},
+                    {x:0.921,y:0.484},{x:0.632,y:0.782},{x:0.373,y:0.896},{x:-0.099,y:0.941},
+                    {x:-0.709,y:0.728},{x:-0.983,y:0.355}
+                ]
+            },
+            {
+                name: "복숭아", radius: 60, score: 100, imgUrl: "4.png",
+                imgWScale: 2.2278, imgHScale: 2.4003, offsetX: 0.0214, offsetY: -0.1843,
+                vertices: [
+                    {x:-1.03,y:-0.213},{x:-0.86,y:-0.607},{x:-0.427,y:-0.885},{x:0.338,y:-0.892},
+                    {x:0.747,y:-0.722},{x:1.01,y:-0.282},{x:1.041,y:0.042},{x:0.886,y:0.491},
+                    {x:0.655,y:0.73},{x:0.338,y:0.9},{x:-0.072,y:0.977},{x:-0.481,y:0.838},
+                    {x:-0.837,y:0.56},{x:-0.968,y:0.352}
+                ]
+            },
+            {
+                name: "포도", radius: 80, score: 150, imgUrl: "5.png",
+                imgWScale: 2.2244, imgHScale: 2.5790, offsetX: -0.0182, offsetY: -0.1944,
+                vertices: [
+                    {x:-0.947,y:-0.628},{x:-0.653,y:-0.803},{x:0.101,y:-0.85},{x:0.712,y:-0.755},
+                    {x:0.974,y:-0.588},{x:1.062,y:-0.271},{x:0.919,y:0.388},{x:0.792,y:0.571},
+                    {x:0.26,y:0.952},{x:-0.066,y:1.031},{x:-0.264,y:0.952},{x:-0.764,y:0.602},
+                    {x:-0.899,y:0.412},{x:-1.05,y:-0.152}
+                ]
+            },
+            {
+                name: "멜론", radius: 105, score: 300, imgUrl: "6.png",
+                imgWScale: 2.0997, imgHScale: 2.5227, offsetX: -0.0038, offsetY: -0.2077
+            },
+            {
+                name: "수박", radius: 140, score: 600, imgUrl: "7.png",
+                imgWScale: 2.1458, imgHScale: 2.4227, offsetX: 0.0269, offsetY: -0.1961
+            }
         ];
 
         const loadedImages = {};
-        const imageRatios = {}; 
-        
+
         FRUITS.forEach(fruit => {
-            const img = new Image(); img.src = fruit.imgUrl;
-            img.onload = () => { loadedImages[fruit.name] = img; imageRatios[fruit.name] = img.width / img.height; checkAllImagesLoaded(); };
+            const img = new Image();
+            img.onload = () => {
+                loadedImages[fruit.name] = img;
+            };
+            img.src = fruit.imgUrl;
         });
 
         function generateEvolutionChart() {
             const chartEl = document.getElementById('evolution-chart');
             chartEl.innerHTML = '<h3>진화표</h3>';
             FRUITS.forEach((item, i) => {
-                const div = document.createElement('div'); div.className = 'evol-item';
-                div.innerHTML = `<div class="evol-icons"><img src="${item.imgUrl}"> + <img src="${item.imgUrl}"> → ${i === 6 ? '💥' : `<img src="${FRUITS[i+1].imgUrl}">`}</div> <div style="margin-left:auto; color:#ff4757; font-weight:bold;">${i===6?1200:FRUITS[i+1].score}</div>`;
+                const div = document.createElement('div');
+                div.className = 'evol-item';
+                div.innerHTML = `<div class="evol-icons"><img src="${item.imgUrl}" alt="${item.name}"> + <img src="${item.imgUrl}" alt="${item.name}"> → ${i === FRUITS.length - 1 ? '💥' : `<img src="${FRUITS[i+1].imgUrl}" alt="${FRUITS[i+1].name}">`}</div> <div style="margin-left:auto; color:#ff4757; font-weight:bold;">${i === FRUITS.length - 1 ? 1200 : FRUITS[i+1].score}</div>`;
                 chartEl.appendChild(div);
             });
         }
-        
-        let loadedCount = 0; 
-        function checkAllImagesLoaded() { loadedCount++; if (loadedCount === FRUITS.length) generateEvolutionChart(); }
+        generateEvolutionChart();
 
         let score = 0; let isClickable = true; let isGameOver = false; let currentFruitIndex = 0;
         const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
         const engine = Engine.create(); const world = engine.world;
         const width = 450; const height = 700;
+        const DROP_Y = 100;
         const container = document.getElementById('game-container');
-        
+
         const render = Render.create({ element: container, engine: engine, options: { width: width, height: height, wireframes: false, background: 'transparent' } });
-        
+
+        const wallThickness = 40;
         const wallOptions = { isStatic: true, render: { visible: false } };
-        const ground = Bodies.rectangle(width / 2, height + 10, width, 40, wallOptions);
-        const leftWall = Bodies.rectangle(-10, height / 2, 40, height, wallOptions);
-        const rightWall = Bodies.rectangle(width + 10, height / 2, 40, height, wallOptions);
+        const ground = Bodies.rectangle(width / 2, height + wallThickness / 2, width + wallThickness * 2, wallThickness, wallOptions);
+        const leftWall = Bodies.rectangle(-wallThickness / 2, height / 2, wallThickness, height + wallThickness * 2, wallOptions);
+        const rightWall = Bodies.rectangle(width + wallThickness / 2, height / 2, wallThickness, height + wallThickness * 2, wallOptions);
         Composite.add(world, [ground, leftWall, rightWall]);
-        
+
         Render.run(render); Runner.run(Runner.create(), engine);
+
+        function updateGameScale() {
+            const isCompact = window.innerWidth < 1040;
+            const horizPadding = isCompact ? 24 : 552;
+            const availW = Math.max(260, window.innerWidth - horizPadding);
+            let availH;
+            if (isCompact) {
+                const scoreEl = document.getElementById('score-board');
+                const scoreH = scoreEl ? scoreEl.offsetHeight : 56;
+                availH = Math.max(360, window.innerHeight - scoreH - 36);
+            } else {
+                availH = Math.max(420, window.innerHeight - 32);
+            }
+            const scale = Math.min(1, availW / width, availH / height);
+            const stage = document.getElementById('game-stage');
+            const scaledW = Math.round(width * scale);
+            const scaledH = Math.round(height * scale);
+            stage.style.width = scaledW + 'px';
+            stage.style.height = scaledH + 'px';
+            container.style.transform = `scale(${scale})`;
+            document.documentElement.style.setProperty('--stage-w', scaledW + 'px');
+        }
+        updateGameScale();
+        window.addEventListener('resize', updateGameScale);
 
         function setNextFruit() {
             currentFruitIndex = Math.floor(Math.random() * 3);
+            const config = FRUITS[currentFruitIndex];
             const preview = document.getElementById('next-fruit-preview');
-            preview.src = FRUITS[currentFruitIndex].imgUrl;
-            preview.style.width = (FRUITS[currentFruitIndex].radius * 2) + "px";
+            const drawW = config.imgWScale * config.radius;
+            const drawH = config.imgHScale * config.radius;
+            const drawOffX = config.offsetX * config.radius;
+            const drawOffY = config.offsetY * config.radius;
+            preview.src = config.imgUrl;
+            preview.style.width = drawW + 'px';
+            preview.style.height = drawH + 'px';
+            preview.style.left = (30 - drawW / 2 + drawOffX) + 'px';
+            preview.style.top = (DROP_Y - drawH / 2 + drawOffY) + 'px';
             preview.style.opacity = '1';
         }
         setNextFruit();
 
-// --- 🎮 마우스 및 모바일 터치 컨트롤 로직 ---
+        // --- 🎮 마우스 및 모바일 터치 컨트롤 로직 ---
 
-        // 1. 집게(Claw) 위치 이동 공통 함수
         function updateClawPosition(clientX) {
             if (isGameOver) return;
             const rect = container.getBoundingClientRect();
-            let posX = clientX - rect.left;
-            
-            const currentRadius = FRUITS[currentFruitIndex].radius;
-            if (posX < currentRadius) posX = currentRadius;
-            if (posX > width - currentRadius) posX = width - currentRadius;
-            
+            if (!rect.width) return;
+            let posX = ((clientX - rect.left) / rect.width) * width;
+            const margin = FRUITS[currentFruitIndex].radius * 1.08;
+            if (posX < margin) posX = margin;
+            if (posX > width - margin) posX = width - margin;
             document.getElementById('claw').style.left = posX + 'px';
         }
 
-        // 2. 과일 떨어뜨리기 공통 함수
         function triggerDrop() {
             if (!isClickable || isGameOver) return;
-            
-            const clawLeftStr = document.getElementById('claw').style.left;
-            let dropX = clawLeftStr ? parseFloat(clawLeftStr) : width / 2;
 
-            dropFruit(dropX, 100, currentFruitIndex);
-            
-            isClickable = false; 
+            const clawLeftStr = document.getElementById('claw').style.left;
+            const margin = FRUITS[currentFruitIndex].radius * 1.08;
+            let dropX = clawLeftStr ? parseFloat(clawLeftStr) : width / 2;
+            dropX = Math.min(width - margin, Math.max(margin, dropX));
+
+            dropFruit(dropX, DROP_Y, currentFruitIndex);
+
+            isClickable = false;
             document.getElementById('next-fruit-preview').style.opacity = '0';
-            
-            setTimeout(() => { 
-                if (!isGameOver) { setNextFruit(); isClickable = true; } 
+
+            setTimeout(() => {
+                if (!isGameOver) {
+                    setNextFruit();
+                    isClickable = true;
+                }
             }, 1000);
         }
 
+        let lastTouchTime = 0;
+
         // [PC 환경] 마우스 이벤트
-        container.addEventListener('mousemove', (e) => updateClawPosition(e.clientX));
-        container.addEventListener('click', triggerDrop);
+        container.addEventListener('mousemove', (e) => {
+            if (e.target.closest('#game-over-screen')) return;
+            updateClawPosition(e.clientX);
+        });
+        container.addEventListener('click', (e) => {
+            if (e.target.closest('#game-over-screen')) return;
+            if (Date.now() - lastTouchTime < 500) return;
+            triggerDrop();
+        });
 
         // [모바일 환경] 터치 이벤트
         container.addEventListener('touchstart', (e) => {
+            if (isGameOver || e.target.closest('#game-over-screen')) return;
+            lastTouchTime = Date.now();
             updateClawPosition(e.touches[0].clientX);
         }, { passive: true });
 
         container.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // 중요: 터치 드래그 시 스마트폰 화면이 스크롤되는 것을 방지!
+            if (isGameOver || e.target.closest('#game-over-screen')) return;
+            e.preventDefault();
             updateClawPosition(e.touches[0].clientX);
         }, { passive: false });
 
-        container.addEventListener('touchend', triggerDrop);
+        container.addEventListener('touchend', (e) => {
+            if (isGameOver || e.target.closest('#game-over-screen')) return;
+            lastTouchTime = Date.now();
+            triggerDrop();
+        });
 
-        // 물리 법칙(마찰력, 탄성) 복구 완료
-        function dropFruit(x, y, index) {
+        function createFruitBody(x, y, index) {
             const config = FRUITS[index];
-            const fruit = Bodies.circle(x, y, config.radius, {
+            const options = {
                 index: index,
-                restitution: 0.2, 
-                friction: 0.1,    
-                render: { visible: false } 
-            });
-            Composite.add(world, fruit);
+                restitution: 0.2,
+                friction: 0.1,
+                render: { visible: false }
+            };
+            if (config.vertices) {
+                const scaledVerts = config.vertices.map(v => ({
+                    x: v.x * config.radius,
+                    y: v.y * config.radius
+                }));
+                return Bodies.fromVertices(x, y, [scaledVerts], options, false, 0, 10, 0);
+            }
+            return Bodies.circle(x, y, config.radius, options);
         }
 
+        function dropFruit(x, y, index) {
+            Composite.add(world, createFruitBody(x, y, index));
+        }
 
         Events.on(engine, 'collisionStart', (event) => {
             event.pairs.forEach((pair) => {
-                const a = pair.bodyA; const b = pair.bodyB;
-                if (a.index !== undefined && a.index === b.index) {
+                const a = pair.bodyA.parent || pair.bodyA;
+                const b = pair.bodyB.parent || pair.bodyB;
+                if (a !== b && a.index !== undefined && a.index === b.index) {
                     const idx = a.index;
                     if (!Composite.allBodies(world).includes(a) || !Composite.allBodies(world).includes(b)) return;
-                    
-                    if (idx === FRUITS.length - 1) { 
+
+                    if (idx === FRUITS.length - 1) {
                         Composite.remove(world, [a, b]);
                         score += FRUITS[idx].score * 2;
                         document.getElementById('score').innerText = score;
                         return;
                     }
 
-                    const newX = (a.position.x + b.position.x) / 2;
-                    const newY = (a.position.y + b.position.y) / 2;
+                    const nextConfig = FRUITS[idx + 1];
+                    const nextMargin = nextConfig.radius * 1.08;
+                    const newX = Math.min(width - nextMargin, Math.max(nextMargin, (a.position.x + b.position.x) / 2));
+                    const newY = Math.min(height - nextConfig.radius - 2, (a.position.y + b.position.y) / 2);
                     Composite.remove(world, [a, b]);
-                    
-                    // 합쳐진 과일 탄성 복구
-                    const next = Bodies.circle(newX, newY, FRUITS[idx+1].radius, { 
-                        index: idx+1, 
-                        restitution: 0.2, 
-                        render: { visible: false } 
-                    });
+
+                    const next = createFruitBody(newX, newY, idx + 1);
                     Composite.add(world, next);
-                    score += FRUITS[idx+1].score;
+                    score += nextConfig.score;
                     document.getElementById('score').innerText = score;
                 }
             });
@@ -265,7 +514,9 @@
         Events.on(engine, 'afterUpdate', () => {
             if (isGameOver) return;
             world.bodies.forEach(body => {
-                if (!body.isStatic && body.position.y < 120 && body.velocity.y < 0.1 && body.velocity.x < 0.1 && isClickable) triggerGameOver();
+                if (!body.isStatic && body.position.y < 120 && Math.abs(body.velocity.y) < 0.1 && Math.abs(body.velocity.x) < 0.1 && isClickable) {
+                    triggerGameOver();
+                }
             });
         });
 
@@ -302,33 +553,29 @@
 
         document.getElementById('restart-btn').addEventListener('click', () => location.reload());
 
-        // --- ★ 핵심 찌부 해결 렌더링 복구 ★ ---
+        // --- ★ 과일 실루엣 기준 정렬 렌더링 ★ ---
         Events.on(render, 'afterRender', () => {
             const ctx = render.context;
             Composite.allBodies(world).forEach(body => {
                 if (body.index !== undefined) {
                     const config = FRUITS[body.index];
                     const img = loadedImages[config.name];
-                    const originalRatio = imageRatios[config.name]; 
-                    
-                    if (img && originalRatio) {
+                    if (img) {
+                        const drawWidth = config.imgWScale * config.radius;
+                        const drawHeight = config.imgHScale * config.radius;
+                        const drawOffsetX = config.offsetX * config.radius;
+                        const drawOffsetY = config.offsetY * config.radius;
+
                         ctx.save();
                         ctx.translate(body.position.x, body.position.y);
                         ctx.rotate(body.angle);
-                        
-                        const scaleZoom = config.zoom || 1.0;
-                        const diameter = config.radius * 2;
-                        let drawWidth, drawHeight;
-                        
-                        if (originalRatio > 1) {
-                            drawWidth = diameter * scaleZoom;
-                            drawHeight = (diameter / originalRatio) * scaleZoom; 
-                        } else {
-                            drawHeight = diameter * scaleZoom;
-                            drawWidth = (diameter * originalRatio) * scaleZoom; 
-                        }
-                        
-                        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+                        ctx.drawImage(
+                            img,
+                            -drawWidth / 2 + drawOffsetX,
+                            -drawHeight / 2 + drawOffsetY,
+                            drawWidth,
+                            drawHeight
+                        );
                         ctx.restore();
                     }
                 }
